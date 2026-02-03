@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #8b5cf6;
+  --color-primary-dark: #7c3aed;
+  --color-secondary: #0a0a0a;
+  --color-accent: #00ff88;
+  
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-montserrat: 'Montserrat', sans-serif;
+
+  /* Animaciones personalizadas traídas de tu style.css */
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-gradient-move: gradientMove 5s infinite alternate;
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  @keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
+}
+
+/* Reset básico y Fuentes */
+body {
+  background-color: var(--color-secondary);
+  color: #e9d5ff;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Scrollbar personalizada (estilo dark) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6;
+}
