@@ -11,8 +11,13 @@ import ForgotPassword from '../pages/auth/ForgotPassword';
 import UpdatePassword from '../pages/auth/UpdatePassword';
 import VerifyEmail from '../pages/auth/VerifyEmail';
 import AuthCallback from '../pages/auth/AuthCallback';
+
+//marketplace
 import Explore from '../pages/Explore';
 import ProductDetail from '../pages/ProductDetail';
+import Checkout from '../pages/Checkout';
+import Success from '../pages/Success';
+import MyPurchases from '../pages/MyPurchases';
 
 // General Pages
 import NotFound from '../pages/NotFound';
@@ -25,6 +30,7 @@ const AppRouter = () => {
         <Route path="/" element={<Home />} />
         <Route path="/explorar" element={<Explore />} />
         <Route path="/producto/:id" element={<ProductDetail />} />
+        <Route path="/my-purchases" element={<MyPurchases />} />
       </Route>
 
       {/* Rutas de Autenticación (Diseño Centrado) */}
@@ -37,6 +43,10 @@ const AppRouter = () => {
         {/* Callback para OAuth y Magic Links */}
         <Route path="callback" element={<AuthCallback />} />
       </Route>
+
+      {/* Rutas de Marketplace */}
+      <Route path="/checkout" element={<Checkout />} />
+      <Route path="/success" element={<Success />} />
 
       {/* Redirección 404 */}
       <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
