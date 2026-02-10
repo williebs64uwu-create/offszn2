@@ -29,7 +29,10 @@ import AuthCallback from '../pages/auth/AuthCallback';
 // Pages - Dashboard
 import Overview from '../pages/dashboard/Overview';
 import AccountSettings from '../pages/dashboard/AccountSettings';
-import UploadBeats from '../pages/account/UploadBeats'; // El Wizard Nuevo
+import UploadBeats from '../pages/account/UploadBeats';
+import YouTubeImport from '../pages/account/YouTubeImport';
+import MyProducts from '../pages/dashboard/producer/MyProducts';
+import LicenseManager from '../pages/dashboard/producer/LicenseManager';
 
 const AppRouter = () => {
   return (
@@ -65,9 +68,11 @@ const AppRouter = () => {
 
         {/* 🔥 AQUÍ ESTÁ LA RUTA DEL WIZARD QUE HICIMOS HOY */}
         <Route path="upload-beat" element={<UploadBeats />} />
+        <Route path="import-youtube" element={<YouTubeImport />} />
+        <Route path="my-products" element={<MyProducts />} />
+        <Route path="licenses" element={<LicenseManager />} />
 
         {/* Placeholder para rutas futuras */}
-        <Route path="kits" element={<div>Mis Kits (Próximamente)</div>} />
         <Route path="licencias" element={<div>Licencias (Próximamente)</div>} />
         <Route path="analytics" element={<div>Analytics (Próximamente)</div>} />
       </Route>

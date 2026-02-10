@@ -97,7 +97,7 @@ const Navbar = () => {
                   <div className="flex flex-col gap-1">
                     <span className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Growth & Analytics</span>
                     <MegaLink to="/studio/analyzer" icon={BarChart} label="Analyzer" />
-                    <MegaLink to="/studio/manager" icon={Briefcase} label="Manager" />
+                    <MegaLink to="/dashboard/my-products" icon={Briefcase} label="Manager" />
                   </div>
                 </div>
               </li>
@@ -170,7 +170,7 @@ const Navbar = () => {
                     <div className="flex flex-col gap-1">
                       <UserLink to="/cuenta/dashboard" icon={BarChart} label="Dashboard" />
                       <UserLink to="/favoritos" icon={Heart} label="Mis Favoritos" />
-                      <UserLink to="/settings" icon={Settings} label="Configuración" />
+                      <UserLink to="/dashboard/licenses" icon={Settings} label="Configuración" />
 
                       <button
                         onClick={signOut}
@@ -182,7 +182,7 @@ const Navbar = () => {
                   </div>
                 </div>
 
-                <Link to="/upload" className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-full text-sm font-bold transition-all ml-2 flex items-center gap-2">
+                <Link to="/dashboard/upload-beat" className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-full text-sm font-bold transition-all ml-2 flex items-center gap-2">
                   Subir
                 </Link>
               </div>
