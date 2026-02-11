@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ShoppingCart, Bell, LogOut, Settings, Heart, Disc, Sliders, Music, CheckCircle, Users, UserPlus, PlayCircle, BarChart, Briefcase } from 'lucide-react';
+import { ChevronDown, ShoppingCart, Bell, LogOut, Settings, Heart, Disc, Sliders, Music, CheckCircle, Users, UserPlus, PlayCircle, BarChart, Briefcase, Tag, Rocket } from 'lucide-react';
 import clsx from 'clsx';
 import PromoBanner from './PromoBanner';
 import SearchBar from './SearchBar';
 import { useAuthStore } from '../../store/authStore';
 import { useCurrencyStore } from '../../store/currencyStore';
+import { useCartStore } from '../../store/cartStore';
+import CartPanel from '../cart/CartPanel';
 
 const Navbar = () => {
   const { user, profile, checkSession, signOut } = useAuthStore();
   const { currency, setCurrency } = useCurrencyStore();
+  const { items, syncWithSupabase } = useCartStore();
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => { checkSession(); }, []);
 
@@ -133,10 +137,16 @@ const Navbar = () => {
               </div>
             </div>
 
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white">
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white"
+            >
               <ShoppingCart className="w-5 h-5" />
-              {/* Badge Count: min-w-[18px] -> min-w-4.5, h-[18px] -> h-4.5 */}
-              <span className="absolute -top-1.5 -right-1.5 bg-white text-black text-[10px] font-extrabold px-1 min-w-4.5 h-4.5 flex items-center justify-center rounded-full border-2 border-black">0</span>
+              {items.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-white text-black text-[10px] font-extrabold px-1 min-w-4.5 h-4.5 flex items-center justify-center rounded-full border-2 border-black animate-in zoom-in duration-300">
+                  {items.length}
+                </span>
+              )}
             </button>
 
             {user ? (
@@ -206,6 +216,8 @@ const Navbar = () => {
       {activeDropdown && (
         <div className="fixed inset-0 z-999" onClick={closeDropdowns}></div>
       )}
+
+      <CartPanel isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   );
 };

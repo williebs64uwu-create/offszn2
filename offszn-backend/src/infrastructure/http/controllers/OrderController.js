@@ -1,10 +1,14 @@
 import { supabase } from '../../database/connection.js';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { MERCADOPAGO_ACCESS_TOKEN } from '../../../shared/config/config.js';
+import fetch from 'node-fetch'; // Ensure node-fetch is available or use global fetch if in Node 18+
 
 const client = MERCADOPAGO_ACCESS_TOKEN ? new MercadoPagoConfig({ accessToken: MERCADOPAGO_ACCESS_TOKEN }) : null;
 const TASA_CAMBIO_USD_COP = 4200;
 
+/**
+ * Creates a Mercado Pago preference for the checkout session.
+ */
 export const createMercadoPagoPreference = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -12,26 +16,42 @@ export const createMercadoPagoPreference = async (req, res) => {
 
         if (!cartItems?.length) return res.status(400).json({ error: 'Carrito vacío' });
 
-        const productIds = cartItems.map(item => item.id);
+        const productIds = cartItems.map(item => item.productId || item.id);
         const { data: dbProducts, error } = await supabase
             .from('products')
-            .select('id, name, price_basic, image_url, currency')
+            .select(`
+                id, 
+                name, 
+                price_basic, 
+                image_url, 
+                cover_url,
+                currency
+            `)
             .in('id', productIds)
             .eq('status', 'approved');
 
         if (error) throw error;
 
+        // Redirect URL detection strategy
+        let clientURL = req.headers.origin || req.headers.referer;
+        if (!clientURL || clientURL.includes('localhost')) {
+            clientURL = "http://127.0.0.1:5173";
+        }
+
         const line_items = dbProducts.map(product => {
             let unitPrice = parseFloat(product.price_basic) || 10;
+            if (isNaN(unitPrice)) unitPrice = 10;
+
+            // Currency conversion to COP for Mercado Pago
             if (product.currency === 'USD' || !product.currency) {
                 unitPrice *= TASA_CAMBIO_USD_COP;
             }
-            if (unitPrice < 500) unitPrice = 500;
+            if (unitPrice < 500) unitPrice = 500; // Minimum required by MP
 
             return {
                 id: product.id.toString(),
                 title: product.name,
-                picture_url: product.image_url,
+                picture_url: product.cover_url || product.image_url,
                 quantity: 1,
                 currency_id: 'COP',
                 unit_price: Number(unitPrice.toFixed(2))
@@ -41,9 +61,9 @@ export const createMercadoPagoPreference = async (req, res) => {
         const preferenceBody = {
             items: line_items,
             back_urls: {
-                success: `${req.headers.origin}/success`,
-                failure: `${req.headers.origin}/carrito`,
-                pending: `${req.headers.origin}/carrito`
+                success: `${clientURL}/success`,
+                failure: `${clientURL}/checkout`,
+                pending: `${clientURL}/checkout`
             },
             auto_return: "approved",
             external_reference: JSON.stringify({ u_id: userId, ts: Date.now() }),
@@ -55,22 +75,169 @@ export const createMercadoPagoPreference = async (req, res) => {
 
         res.status(200).json({ url: result.init_point });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("❌ Error MP Detallado:", JSON.stringify(err, null, 2));
+        res.status(500).json({
+            error: err.message,
+            details: err.cause || err
+        });
     }
 };
 
+/**
+ * Handles the webhook notification from Mercado Pago.
+ * Responds immediately and processes the audit in the background.
+ */
 export const handleMercadoPagoWebhook = async (req, res) => {
     const id = req.query.id || req.query['data.id'];
     const topic = req.query.topic || req.query.type;
 
+    console.log(`🔔 [Webhook IN] Topic: ${topic} | ID: ${id}`);
+
     if (topic === 'payment') {
-        res.status(200).send('OK');
-        // Logic for auditing and saving to DB should follow (omitted for brevity in this initial setup)
+        res.status(200).send('OK'); // Respond immediately to MP
+        processPaymentAudit(id);     // Process in background
     } else {
         res.status(200).send('OK');
     }
 };
 
+/**
+ * Retries fetching payment details and persists the order if approved.
+ */
+const processPaymentAudit = async (paymentId) => {
+    const currentToken = MERCADOPAGO_ACCESS_TOKEN;
+    const maskedToken = currentToken ? `${currentToken.substring(0, 10)}...` : 'NULL';
+    console.log(`🔑 [AUDIT TOKEN] Usando token: ${maskedToken}`);
+    console.log(`🕵️ [AUDIT START] Investigating payment ${paymentId}`);
+
+    const maxRetries = 5;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+        attempt++;
+        const delay = 5000;
+        console.log(`⏳ [AUDIT LOOP] Attempt ${attempt}/${maxRetries}`);
+
+        await new Promise(r => setTimeout(r, delay));
+
+        try {
+            const url = `https://api.mercadopago.com/v1/payments/${paymentId}`;
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${currentToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`✅ [AUDIT SUCCESS] Status: ${data.status}`);
+
+                if (data.status === 'approved' || data.status === 'completed') {
+                    await saveOrderToDB(data);
+                }
+                return;
+            } else {
+                const errorText = await response.text();
+                console.warn(`⚠️ [AUDIT FAIL] MP Response: ${errorText}`);
+            }
+        } catch (e) {
+            console.error(`🔴 [AUDIT ERROR] Network/Code failure:`, e);
+        }
+    }
+};
+
+/**
+ * Persists the approved order and its items to the database.
+ */
+const saveOrderToDB = async (paymentData) => {
+    try {
+        const metadata = JSON.parse(paymentData.external_reference);
+        const userId = metadata.u_id;
+
+        // 1. Insert Main Order
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .insert({
+                user_id: userId,
+                transaction_id: paymentData.id.toString(),
+                status: 'completed', // Using 'completed' for internal logic sync
+                total_price: paymentData.transaction_amount
+            })
+            .select()
+            .single();
+
+        if (orderError) throw orderError;
+
+        // 2. Insert Order Items (extract from additional_info or logic fallback)
+        const items = paymentData.additional_info?.items || [];
+        const orderItems = items.map(item => ({
+            order_id: order.id,
+            product_id: parseInt(item.id),
+            quantity: 1,
+            price_at_purchase: item.unit_price
+        }));
+
+        if (orderItems.length > 0) {
+            const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+            if (itemsError) throw itemsError;
+
+            // 3. Increment Sales Counts
+            for (const item of orderItems) {
+                const { data: prod } = await supabase
+                    .from('products')
+                    .select('sales_count')
+                    .eq('id', item.product_id)
+                    .single();
+
+                if (prod) {
+                    await supabase
+                        .from('products')
+                        .update({ sales_count: (prod.sales_count || 0) + 1 })
+                        .eq('id', item.product_id);
+                }
+            }
+        }
+
+        console.log(`🎯 [DB SUCCESS] Order ${order.id} persisted for user ${userId}`);
+    } catch (err) {
+        console.error("❌ [DB ERROR] Failure saving order:", err);
+    }
+};
+
+/**
+ * Polling endpoint for the client to check if the latest order is completed.
+ */
+export const checkPaymentStatus = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const { data, error } = await supabase
+            .from('orders')
+            .select('id, status, created_at')
+            .eq('user_id', userId)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (data && !error) {
+            // Only return if order is recent (within 5 minutes)
+            const isRecent = new Date(data.created_at).getTime() > (Date.now() - 5 * 60 * 1000);
+            if (isRecent) {
+                return res.status(200).json({ status: 'completed', orderId: data.id });
+            }
+        }
+
+        res.status(200).json({ status: 'pending' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error checking status' });
+    }
+};
+
+/**
+ * Creates a free order bypassing payment gateways.
+ */
 export const createFreeOrder = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -83,7 +250,9 @@ export const createFreeOrder = async (req, res) => {
             .single();
 
         if (fetchError || !product) return res.status(404).json({ error: 'Producto no encontrado' });
-        if (product.is_free !== true && parseFloat(product.price_basic) > 0) {
+
+        const isActuallyFree = product.is_free === true || parseFloat(product.price_basic) === 0;
+        if (!isActuallyFree) {
             return res.status(403).json({ error: 'Este producto no es gratuito' });
         }
 
@@ -106,8 +275,21 @@ export const createFreeOrder = async (req, res) => {
             price_at_purchase: 0
         });
 
+        // Increment download counter
+        await supabase.rpc('increment_product_downloads', { row_id: product.id });
+
         res.status(201).json({ message: 'Descarga gratuita registrada', orderId: order.id });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+};
+
+/**
+ * Manual webhook re-processing for stuck payments (Debug).
+ */
+export const forceCheckPayment = async (req, res) => {
+    const { paymentId } = req.params;
+    console.log(`🚨 [FORCE] Iniciando forzado manual para ${paymentId}`);
+    processPaymentAudit(paymentId);
+    res.json({ message: "Proceso forzado iniciado en background. Revisa logs." });
 };

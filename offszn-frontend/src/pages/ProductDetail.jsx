@@ -75,6 +75,25 @@ const ProductDetail = () => {
     // window.toast.success('Añadido al carrito');
   };
 
+  const handleFreeDownload = async () => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para descargar');
+      navigate('/auth/login');
+      return;
+    }
+
+    try {
+      toast.loading('Iniciando descarga...', { id: 'free-dl' });
+      const { data } = await apiClient.post('/orders/free', { productId: product.id });
+      toast.success('¡Orden gratuita generada!', { id: 'free-dl' });
+      // In a real app, logic to start the actual file download would go here
+      // For now we just register the order
+      navigate('/biblioteca');
+    } catch (err) {
+      toast.error('Error al procesar la descarga', { id: 'free-dl' });
+    }
+  };
+
   const renderBuyingModule = () => {
     const isKit = ['drumkit', 'loopkit', 'presets', 'plantilla'].includes(product.product_type?.toLowerCase());
 
@@ -84,7 +103,7 @@ const ProductDetail = () => {
           <button className="btn-purchase-kit" onClick={handleAddToCart}>
             {product.is_free ? 'DESCARGA GRATIS' : `COMPRAR KIT - ${formatPrice(product.price_basic)}`}
           </button>
-          <button className="btn-minimal-link" style={{ margin: '10px auto', width: '100%', justifyContent: 'center' }}>
+          <button onClick={handleFreeDownload} className="btn-minimal-link" style={{ margin: '10px auto', width: '100%', justifyContent: 'center' }}>
             <BiArrowDownCircle /> Descargar Demo / Gratis
           </button>
         </div>
@@ -124,7 +143,7 @@ const ProductDetail = () => {
             <BiCartPlus /> Añadir al Carrito
           </button>
           {product.is_free && (
-            <button className="btn-minimal-link w-full justify-center">
+            <button onClick={handleFreeDownload} className="btn-minimal-link w-full justify-center">
               <BiDownload /> Descargar Gratis (MP3 con Tag)
             </button>
           )}

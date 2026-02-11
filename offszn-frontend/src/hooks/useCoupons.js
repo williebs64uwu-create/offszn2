@@ -105,11 +105,41 @@ export const useCoupons = () => {
         }
     };
 
+    const validateCoupon = async (code, productId = null) => {
+        try {
+            const { data, error } = await supabase
+                .from('coupons')
+                .select('*')
+                .eq('code', code.toUpperCase())
+                .single();
+
+            if (error || !data) throw new Error("Cupón no encontrado");
+
+            const status = getStatus(data);
+            if (status === 'expired') throw new Error("El cupón ha expirado");
+            if (status === 'scheduled') throw new Error("El cupón aún no es válido");
+
+            if (data.usage_limit && data.used_count >= data.usage_limit) {
+                throw new Error("El cupón ha alcanzado su límite de uso");
+            }
+
+            // If product-specific, check match
+            if (data.applicable_to === 'specific' && productId && data.product_id !== productId) {
+                throw new Error("Este cupón no es válido para este producto");
+            }
+
+            return { valid: true, coupon: data };
+        } catch (err) {
+            return { valid: false, message: err.message };
+        }
+    };
+
     return {
         coupons,
         loading,
         saveCoupon,
         deleteCoupon,
+        validateCoupon,
         refresh: fetchCoupons
     };
 };
