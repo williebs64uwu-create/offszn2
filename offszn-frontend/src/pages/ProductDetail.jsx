@@ -4,7 +4,9 @@ import { apiClient } from '../api/client';
 import { usePlayerStore } from '../store/playerStore';
 import { useCartStore } from '../store/cartStore';
 import { useCurrencyStore } from '../store/currencyStore';
-import { BiPlay, BiPause, BiCartPlus, BiInfoCircle, BiLayoutThreeColumns, BiHeart, BiUpload, BiPlusLg, BiChevronDown, BiPatchCheckFill, BiDownload, BiArrowDownCircle } from 'react-icons/bi';
+import { useAuth } from '../store/authStore';
+import { useChatStore } from '../store/useChatStore';
+import { BiPlay, BiPause, BiCartPlus, BiInfoCircle, BiLayoutThreeColumns, BiHeart, BiUpload, BiPlusLg, BiChevronDown, BiPatchCheckFill, BiDownload, BiArrowDownCircle, BiMessageDetail } from 'react-icons/bi';
 import '../styles/product-premium.css';
 
 const ProductDetail = () => {
@@ -18,6 +20,8 @@ const ProductDetail = () => {
   const addToCart = useCartStore(state => state.addToCart);
   const { formatPrice } = useCurrencyStore();
   const { playTrack, currentTrack, isPlaying, togglePlay } = usePlayerStore();
+  const { user } = useAuth();
+  const { startNewChat } = useChatStore();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -169,6 +173,15 @@ const ProductDetail = () => {
             <button className="action-btn-icon flex flex-col items-center gap-1">
               <BiHeart size={24} />
               <span className="text-xs text-zinc-500">{product.likes_count || 0}</span>
+            </button>
+            <button className="action-btn-icon" onClick={async () => {
+              if (!user) return alert("Inicia sesión para contactar");
+              // use product.users as the target profile if available, else product.producer_nickname
+              const target = product.users || { id: product.user_id, nickname: product.producer_nickname };
+              await startNewChat(target, user);
+              navigate('/mensajes');
+            }}>
+              <BiMessageDetail size={24} />
             </button>
             <button className="action-btn-icon">
               <BiUpload size={24} />

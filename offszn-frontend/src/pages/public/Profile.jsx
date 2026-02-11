@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { apiClient } from "../../api/client";
 import { useCurrencyStore } from '../../store/currencyStore';
 import { usePlayerStore } from '../../store/playerStore';
+import { useAuth } from '../../store/authStore';
+import { useChatStore } from '../../store/useChatStore';
 import {
   BiUserCheck,
   BiMessageDetail,
@@ -32,6 +34,21 @@ export default function Profile() {
 
   const { formatPrice } = useCurrencyStore();
   const { playTrack, currentTrack, isPlaying, setPlaylist } = usePlayerStore();
+  const { user: currentUser } = useAuth();
+  const { startNewChat } = useChatStore();
+  const navigate = useNavigate();
+
+  const handleMessageClick = async () => {
+    if (!currentUser) {
+      // Logic for guest (could use a global modal if available)
+      alert("Inicia sesión para enviar mensajes");
+      return;
+    }
+
+    // The profile object contains the target user info
+    await startNewChat(profile, currentUser);
+    navigate('/mensajes');
+  };
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -125,7 +142,10 @@ export default function Profile() {
             <button className="flex-1 md:flex-none py-2 px-6 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-lg">
               <BiUserCheck size={20} /> Seguir
             </button>
-            <button className="flex-1 md:flex-none py-2 px-6 border border-[#333] text-white font-bold rounded-full hover:border-[#666] transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={handleMessageClick}
+              className="flex-1 md:flex-none py-2 px-6 border border-[#333] text-white font-bold rounded-full hover:border-[#666] transition-colors flex items-center justify-center gap-2"
+            >
               <BiMessageDetail size={20} /> Mensaje
             </button>
           </div>

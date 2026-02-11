@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ShoppingCart, Bell, LogOut, Settings, Heart, Disc, Sliders, Music, CheckCircle, Users, UserPlus, PlayCircle, BarChart, Briefcase, Tag, Rocket } from 'lucide-react';
+import { ChevronDown, ShoppingCart, Bell, LogOut, Settings, Heart, Disc, Sliders, Music, CheckCircle, Users, UserPlus, PlayCircle, BarChart, Briefcase, Tag, Rocket, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 import PromoBanner from './PromoBanner';
 import SearchBar from './SearchBar';
@@ -73,6 +73,7 @@ const Navbar = () => {
                     <div className="flex flex-col gap-1">
                       <MegaLink to="/productores" icon={Users} label="Productores" />
                       <MegaLink to="/collabs" icon={UserPlus} label="Collabs" />
+                      <MegaLink to="/reels" icon={PlayCircle} label="Reels" />
                       <MegaLink to="/feed" icon={PlayCircle} label="Feed" />
                     </div>
                   </div>
@@ -151,6 +152,9 @@ const Navbar = () => {
 
             {user ? (
               <div className="flex items-center gap-3">
+                <Link to="/mensajes" className="w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white">
+                  <MessageSquare className="w-5 h-5" />
+                </Link>
                 <button className="w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white">
                   <Bell className="w-5 h-5" />
                 </button>

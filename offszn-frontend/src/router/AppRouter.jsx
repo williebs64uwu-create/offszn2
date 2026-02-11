@@ -14,6 +14,8 @@ import NotFound from '../pages/NotFound';
 import Success from '../pages/Success';
 import Checkout from '../pages/Checkout'; // Si existe
 import MyPurchases from '../pages/MyPurchases'; // Si existe
+import Messages from '../pages/Messages';
+import Reels from '../pages/Reels';
 
 // Pages - Public (AQUÍ FALTABA ESTE IMPORT)
 import Profile from '../pages/public/Profile';
@@ -50,6 +52,8 @@ const AppRouter = () => {
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/success" element={<Success />} />
+          <Route path="/mensajes" element={<Messages />} />
+          <Route path="/reels" element={<Reels />} />
 
           {/* Rutas de Usuario Público */}
           <Route path="/u/:username" element={<Profile />} />
