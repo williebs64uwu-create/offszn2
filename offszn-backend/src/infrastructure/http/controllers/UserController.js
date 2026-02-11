@@ -21,6 +21,39 @@ export const getUserByNickname = async (req, res) => {
     }
 };
 
+// Merged Profile Logic
+export const getUserProfile = async (req, res) => {
+    try {
+        const { nickname } = req.params;
+        const { data, error } = await supabase
+            .from('users')
+            .select(`
+                id, nickname, first_name, last_name, avatar_url, is_verified, role, bio, socials,
+                followers:followers(count),
+                products:products(count)
+            `)
+            .ilike('nickname', nickname)
+            .single();
+
+        if (error || !data) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // Flatten counts
+        const user = {
+            ...data,
+            followers_count: data.followers?.[0]?.count || 0,
+            products_count: data.products?.[0]?.count || 0
+        };
+        delete user.followers;
+        delete user.products;
+
+        res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 export const updateMyProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
