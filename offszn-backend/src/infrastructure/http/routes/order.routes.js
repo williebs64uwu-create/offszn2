@@ -5,7 +5,8 @@ import {
     handleMercadoPagoWebhook,
     createFreeOrder,
     checkPaymentStatus,
-    forceCheckPayment
+    forceCheckPayment,
+    getSecureDownloadLink
 } from '../controllers/OrderController.js';
 
 const router = Router();
@@ -18,6 +19,9 @@ router.use(authenticateTokenMiddleware);
 router.post('/orders/create-mercadopago-preference', createMercadoPagoPreference);
 router.post('/orders/free', createFreeOrder);
 router.get('/orders/status/latest', checkPaymentStatus);
+
+// Secure Download
+router.get('/orders/:orderId/download/:productId/:type', getSecureDownloadLink);
 
 // Debug endpoint (Unprotected or restricted to admin in production)
 router.get('/orders/debug/force/:paymentId', forceCheckPayment);

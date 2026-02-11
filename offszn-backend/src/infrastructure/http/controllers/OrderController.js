@@ -293,3 +293,92 @@ export const forceCheckPayment = async (req, res) => {
     processPaymentAudit(paymentId);
     res.json({ message: "Proceso forzado iniciado en background. Revisa logs." });
 };
+
+/**
+ * Generates a temporal signed URL for a purchased product file.
+ * Validates ownership and order status before granting access.
+ */
+export const getSecureDownloadLink = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { orderId, productId, type } = req.params; // type: 'mp3', 'wav', 'stems'
+
+        if (!['mp3', 'wav', 'stems'].includes(type)) {
+            return res.status(400).json({ error: 'Tipo de archivo inválido.' });
+        }
+
+        // 1. Verify Ownership & Order Status
+        // We join order_items -> orders to check user_id and status 'completed'
+        const { data: orderItem, error } = await supabase
+            .from('order_items')
+            .select(`
+                id,
+                orders!inner (
+                    id, user_id, status
+                ),
+                products (
+                    id, download_url_mp3, download_url_wav, download_url_stems
+                )
+            `)
+            .eq('order_id', orderId)
+            .eq('product_id', productId)
+            .eq('orders.user_id', userId)
+            .eq('orders.status', 'completed')
+            .maybeSingle();
+
+        if (error) {
+            console.error("Download verification error:", error);
+            return res.status(500).json({ error: 'Error verificando la compra.' });
+        }
+
+        if (!orderItem) {
+            return res.status(403).json({ error: 'No tienes permiso para descargar este archivo o la orden no está completada.' });
+        }
+
+        // 2. Get File Path from Product
+        const product = orderItem.products;
+        let fileUrl = null;
+
+        if (type === 'mp3') fileUrl = product.download_url_mp3;
+        else if (type === 'wav') fileUrl = product.download_url_wav;
+        else if (type === 'stems') fileUrl = product.download_url_stems;
+
+        if (!fileUrl) {
+            return res.status(404).json({ error: 'Archivo no disponible para este producto.' });
+        }
+
+        // 3. Generate Signed URL (Supabase Storage)
+        // Check if it is a Supabase public URL to convert it to a signed URL
+        const SUPABASE_URL_MARKER = '/storage/v1/object/public/';
+
+        if (fileUrl.includes(SUPABASE_URL_MARKER)) {
+            // Extract bucket and path
+            // URL: https://[project].supabase.co/storage/v1/object/public/[bucket]/[folder]/[file]
+            // Split by marker to get: [bucket]/[folder]/[file]
+            const pathPart = fileUrl.split(SUPABASE_URL_MARKER)[1];
+            // Split bucket from the rest
+            const [bucket, ...rest] = pathPart.split('/');
+            const filePath = rest.join('/'); // The actual path inside the bucket
+
+            const { data: signedData, error: signError } = await supabase
+                .storage
+                .from(bucket)
+                .createSignedUrl(filePath, 3600); // Valid for 1 Hour
+
+            if (signError) {
+                console.error("Signed URL Error:", signError);
+                // Fallback: return public URL if signing fails? No, simpler to fail secure.
+                return res.status(500).json({ error: 'Error generando enlace seguro.' });
+            }
+
+            return res.json({ downloadUrl: signedData.signedUrl });
+        }
+
+        // Fallback: Return original URL (if external, e.g. Dropbox/Drive)
+        res.json({ downloadUrl: fileUrl });
+
+    } catch (err) {
+        console.error("Secure Download Controller Error:", err);
+        res.status(500).json({ error: 'Error interno al procesar la descarga.' });
+    }
+};

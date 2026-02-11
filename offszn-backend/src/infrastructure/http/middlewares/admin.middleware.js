@@ -3,8 +3,8 @@ export const adminMiddleware = (req, res, next) => {
         return res.status(401).json({ error: 'Access denied: Not authenticated' });
     }
 
-    if (req.user.isAdmin !== true) {
-        return res.status(403).json({ error: 'Access denied: Insufficient permissions (Admin only)' });
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de administrador' });
     }
 
     next();

@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: offszn-backend
+    env: node
+    plan: free
+    rootDir: server/
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+    # Rewrites & Redirects (Processed BEFORE Express)
+    routes:
+      # Security Blocks
+      - type: rewrite
+        source: /server/*
+        destination: /404.html
+      - type: rewrite
+        source: /.env
+        destination: /404.html
+      - type: rewrite
+        source: /_redirects
+        destination: /404.html
+        
+      # Profile Rewrites
+      - type: rewrite
+        source: /@:username
+        destination: /perfil-publico.html
+        
+      # Product Rewrites
+      - type: rewrite
+        source: /producto/:slug
+        destination: /producto.html
+
+      # Fallback to Express
+      - type: rewrite
+        source: /*
+        destination: /app.js

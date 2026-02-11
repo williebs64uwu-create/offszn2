@@ -63,9 +63,18 @@ export const createProduct = async (req, res) => {
             return res.status(400).json({ error: 'Faltan datos obligatorios.' });
         }
 
+        // SEO Slug Generation: /beat/{name-slug}-{id-part}
+        const nameSlug = title.toLowerCase()
+            .replace(/[^\w ]+/g, '')
+            .replace(/ +/g, '-');
+
+        // We generate a temp slug, Supabase will provide the ID
+        const tempSlug = `${nameSlug}-${Math.random().toString(36).substring(2, 7)}`;
+
         const productData = {
             producer_id: userId,
             name: title,
+            public_slug: tempSlug,
             description: description || null,
             image_url: artwork_url,
             product_type: product_type || 'beat',
@@ -93,6 +102,9 @@ export const createProduct = async (req, res) => {
 
         if (insertError) throw insertError;
 
+        // Optionally update with real ID if needed for "self-healing" slugs, 
+        // but the random suffix is fine and standard.
+
         res.status(201).json({ message: 'Producto publicado!', product: newProduct });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -102,22 +114,30 @@ export const createProduct = async (req, res) => {
 export const incrementPlayCount = async (req, res) => {
     try {
         const productId = req.params.id;
-        const { data: product, error: fetchError } = await supabase
-            .from('products')
-            .select('views')
-            .eq('id', productId)
-            .single();
+        const { type } = req.query; // 'view' or 'play'
 
-        if (fetchError) throw fetchError;
+        const column = type === 'view' ? 'views_count' : 'plays_count';
 
-        const { error: updateError } = await supabase
-            .from('products')
-            .update({ views: (product.views || 0) + 1 })
-            .eq('id', productId);
+        const { error } = await supabase.rpc('increment_product_metric', {
+            row_id: productId,
+            column_name: column
+        });
 
-        if (updateError) throw updateError;
+        // Fallback if RPC doesn't exist yet (Supabase Common Pattern)
+        if (error) {
+            const { data: product } = await supabase
+                .from('products')
+                .select(column)
+                .eq('id', productId)
+                .single();
 
-        res.status(200).json({ message: 'Play counted' });
+            await supabase
+                .from('products')
+                .update({ [column]: (product?.[column] || 0) + 1 })
+                .eq('id', productId);
+        }
+
+        res.status(200).json({ message: 'Metric updated' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
