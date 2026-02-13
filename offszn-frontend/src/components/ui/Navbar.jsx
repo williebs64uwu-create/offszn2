@@ -31,7 +31,7 @@ const Navbar = () => {
           {/* LOGO */}
           <div className="shrink-0">
             <Link to="/" className="flex items-center">
-              <img src="/images/LOGO OFFSZN.webp" alt="OFFSZN" className="h-8 w-auto scale-150 origin-left" />
+              <img src="../assets/images/LOGO-OFFSZN.png" alt="OFFSZN" className="h-8 w-auto scale-150 origin-left" />
             </Link>
           </div>
 

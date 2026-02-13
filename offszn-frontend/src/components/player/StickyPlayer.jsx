@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { usePlayerStore } from '../../store/playerStore';
 import { useCurrencyStore } from '../../store/currencyStore';
+import { useSecureUrl } from '../../hooks/useSecureUrl';
 import { Link } from 'react-router-dom';
 import {
   BiSkipPrevious,
@@ -36,9 +37,17 @@ const StickyPlayer = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
 
-  // 1. Inicializar WaveSurfer cuando cambia el track
+  // Secure URLs
+  const { url: secureCover } = useSecureUrl(currentTrack?.image_url);
+
+  // Resolve Audio URL
+  // Priority: demo -> mp3 -> generic audio_url
+  const rawAudioUrl = currentTrack ? (currentTrack.demo_audio_url || currentTrack.download_url_mp3 || currentTrack.audio_url) : null;
+  const { url: secureAudio } = useSecureUrl(rawAudioUrl);
+
+  // 1. Inicializar WaveSurfer cuando cambia el track Y tenemos la URL segura
   useEffect(() => {
-    if (!currentTrack || !waveformRef.current) return;
+    if (!currentTrack || !waveformRef.current || !secureAudio) return;
 
     if (wavesurfer.current) {
       wavesurfer.current.destroy();
@@ -57,17 +66,20 @@ const StickyPlayer = () => {
       backend: 'MediaElement',
     });
 
-    const audioUrl = currentTrack.demo_audio_url || currentTrack.download_url_mp3 || currentTrack.audio_url;
-
-    if (audioUrl) {
-      wavesurfer.current.load(audioUrl);
-    }
-
+    wavesurfer.current.load(secureAudio);
     wavesurfer.current.setVolume(volume);
 
     wavesurfer.current.on('ready', () => {
-      setTotalTime(formatTime(wavesurfer.current.getDuration()));
-      if (isPlaying) wavesurfer.current.play();
+      // Check validation: Duration might be Infinity/NaN if streaming? Usually fine with MediaElement
+      const duration = wavesurfer.current.getDuration();
+      if (isFinite(duration)) setTotalTime(formatTime(duration));
+
+      if (isPlaying) {
+        const playPromise = wavesurfer.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => console.error("Auto-play prevented:", error));
+        }
+      }
     });
 
     wavesurfer.current.on('audioprocess', () => {
@@ -81,12 +93,14 @@ const StickyPlayer = () => {
     return () => {
       if (wavesurfer.current) wavesurfer.current.destroy();
     };
-  }, [currentTrack]);
+  }, [currentTrack?.id, secureAudio]); // Re-run if track ID changes OR secure URL resolves
 
   // 2. Controlar Play/Pause
   useEffect(() => {
     if (!wavesurfer.current) return;
-    isPlaying ? wavesurfer.current.play() : wavesurfer.current.pause();
+    try {
+      isPlaying ? wavesurfer.current.play() : wavesurfer.current.pause();
+    } catch (err) { console.warn(err); }
   }, [isPlaying]);
 
   // 3. Controlar Volumen
@@ -123,7 +137,7 @@ const StickyPlayer = () => {
       <div className="flex items-center gap-4 w-[25%] min-w-[180px]">
         <Link to={`/producto/${currentTrack.id}`} className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 group">
           <img
-            src={currentTrack.image_url}
+            src={secureCover || '/placeholder.jpg'}
             alt="Cover"
             className="w-full h-full object-cover"
           />

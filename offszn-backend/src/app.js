@@ -15,8 +15,8 @@ import orderRoutes from './infrastructure/http/routes/order.routes.js';
 import cartRoutes from './infrastructure/http/routes/cart.routes.js';
 import chatRoutes from './infrastructure/http/routes/chat.routes.js';
 import socialRoutes from './infrastructure/http/routes/social.routes.js';
-import chatRoutes from './infrastructure/http/routes/chat.routes.js';
-import socialRoutes from './infrastructure/http/routes/social.routes.js';
+// import chatRoutes from './infrastructure/http/routes/chat.routes.js';
+// import socialRoutes from './infrastructure/http/routes/social.routes.js';
 import paypalRoutes from './infrastructure/http/routes/paypal.routes.js';
 import storageRoutes from './infrastructure/http/routes/storage.routes.js';
 
