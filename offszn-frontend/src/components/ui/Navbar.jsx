@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useCurrencyStore } from '../../store/currencyStore';
 import { useCartStore } from '../../store/cartStore';
 import CartPanel from '../cart/CartPanel';
+import logoImg from '../../assets/images/LOGO-OFFSZN.png';
 
 const Navbar = () => {
   const { user, profile, checkSession, signOut } = useAuthStore();
@@ -31,7 +32,7 @@ const Navbar = () => {
           {/* LOGO */}
           <div className="shrink-0">
             <Link to="/" className="flex items-center">
-              <img src="/assets/images/LOGO-OFFSZN.png" alt="OFFSZN" className="h-8 w-auto scale-150 origin-left" />
+              <img src={logoImg} alt="OFFSZN" className="h-8 w-auto scale-150 origin-left" />
             </Link>
           </div>
 

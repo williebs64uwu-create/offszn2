@@ -21,12 +21,12 @@ const ProductCard = ({ product, isPlaying, onPlay, formatPrice }) => {
                 <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                     <button
                         onClick={onPlay}
-                        className="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform"
+                        className="w-14 h-14 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
                     >
                         {isPlaying ? (
-                            <i className="bi bi-pause-fill text-xl"></i>
+                            <i className="bi bi-pause-fill text-3xl"></i>
                         ) : (
-                            <i className="bi bi-play-fill text-xl ml-1"></i>
+                            <i className="bi bi-play-fill text-3xl ml-1"></i>
                         )}
                     </button>
                 </div>

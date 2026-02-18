@@ -30,6 +30,7 @@ export const useSecureUrl = (originalUrl) => {
         // If it starts with http/https and NOT r2, it's public (e.g. Supabase, Google, etc)
         // EXCEPT if it is an explicit R2 domain.
         const isR2 = originalUrl.includes('r2.cloudflarestorage.com') ||
+            originalUrl.includes('.r2.dev') ||
             (!originalUrl.startsWith('http') && !originalUrl.startsWith('data:') && !originalUrl.startsWith('/'));
         // Note: Relative paths in DB are often R2 keys in this system.
 

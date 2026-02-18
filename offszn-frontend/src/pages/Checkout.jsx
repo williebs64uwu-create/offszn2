@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCartStore } from '../store/cartStore';
 import { useAuth } from '../store/authStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
@@ -38,13 +38,24 @@ const Checkout = () => {
     };
 
     const { subtotal, serviceFee, total } = calculateTotals();
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         if (items.length === 0) {
             toast.error("Tu carrito está vacío");
             navigate('/explorar');
+            return;
         }
-    }, [items, navigate]);
+
+        // If user just logged in/registered, sync their cart
+        if (user) {
+            useCartStore.getState().syncWithSupabase(user.id);
+        }
+    }, [items, navigate, user]);
+
+    const handleLoginRedirect = () => {
+        navigate(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+    };
 
     if (items.length === 0) return null;
 
@@ -87,6 +98,20 @@ const Checkout = () => {
                 <div className="lg:col-span-1">
                     <div className="bg-[#111] border border-white/10 rounded-2xl p-6 sticky top-24">
                         <h3 className="text-xl font-bold text-white mb-6">Detalles de Pago</h3>
+
+                        {!user && (
+                            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                                <p className="text-amber-200 text-sm mb-3">
+                                    Estás comprando como invitado. Inicia sesión para guardar tus licencias en tu cuenta.
+                                </p>
+                                <button
+                                    onClick={handleLoginRedirect}
+                                    className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg text-sm transition-colors"
+                                >
+                                    Iniciar Sesión / Registrarse
+                                </button>
+                            </div>
+                        )}
 
                         <div className="space-y-3 mb-6 pb-6 border-b border-white/10">
                             <div className="flex justify-between text-zinc-400">
