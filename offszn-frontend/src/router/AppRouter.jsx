@@ -35,6 +35,7 @@ import Welcome from '../pages/auth/Welcome';
 import Overview from '../pages/dashboard/Overview';
 import AccountSettings from '../pages/dashboard/AccountSettings';
 import UploadBeats from '../pages/account/UploadBeats';
+import EditBeat from '../pages/account/EditBeat';
 import YouTubeImport from '../pages/account/YouTubeImport';
 import MyProducts from '../pages/dashboard/producer/MyProducts';
 import LicenseManager from '../pages/dashboard/producer/LicenseManager';
@@ -91,6 +92,7 @@ const AppRouter = () => {
 
           {/* RUTA DEL WIZARD */}
           <Route path="upload-beat" element={<UploadBeats />} />
+          <Route path="edit-beat/:id" element={<EditBeat />} />
           <Route path="import-youtube" element={<YouTubeImport />} />
           <Route path="my-products" element={<MyProducts />} />
           <Route path="licenses" element={<LicenseManager />} />

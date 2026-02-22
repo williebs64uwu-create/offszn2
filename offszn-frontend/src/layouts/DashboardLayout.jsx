@@ -78,12 +78,12 @@ function Sidebar() {
 
       {/* --- GRUPO 4: SOCIAL --- */}
       <Divider />
-      <SidebarItem to="/reels" icon={<BiMoviePlay />} label="Reels" active={isActive('/reels')} />
+      <SidebarItem to="#" icon={<BiMoviePlay />} label="Reels (Próximamente)" active={false} />
 
       {/* --- UPGRADE (ROCKET) --- */}
       <div className="mt-auto">
         <Link
-          to="/dashboard/planes"
+          to="/dashboard/plans"
           className="w-10 h-10 rounded-xl flex items-center justify-center text-[#FFD700] bg-[rgba(255,215,0,0.1)] border border-[rgba(255,215,0,0.2)] hover:scale-105 hover:bg-[rgba(255,215,0,0.2)] hover:shadow-[0_0_15px_rgba(255,215,0,0.2)] transition-all duration-200 relative group"
         >
           <BiRocket size={20} />
