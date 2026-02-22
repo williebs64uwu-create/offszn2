@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
 // Layouts
@@ -16,6 +16,8 @@ import Checkout from '../pages/Checkout';
 import MyPurchases from '../pages/MyPurchases'; // Si existe
 import Messages from '../pages/Messages';
 import Reels from '../pages/Reels';
+import { useAuth } from '../store/authStore';
+
 
 // Pages - Public (AQUÍ FALTABA ESTE IMPORT)
 import Profile from '../pages/public/Profile';
@@ -42,7 +44,14 @@ import Coupons from '../pages/dashboard/producer/Coupons';
 import SubscriptionPlans from '../pages/dashboard/producer/SubscriptionPlans';
 import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 
+
 const AppRouter = () => {
+  const { checkSession } = useAuth();
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
+
   return (
     <PayPalScriptProvider options={{ "client-id": "sb", currency: "USD" }}>
       <Routes>

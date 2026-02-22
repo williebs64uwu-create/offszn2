@@ -32,8 +32,12 @@ import {
   ShieldCheck,
   ChevronRight,
   Clock,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
+
+import { useAuth } from '../../store/authStore';
+
 
 import { supabase } from "../../api/client";
 
@@ -79,6 +83,7 @@ const chartOptions = {
 };
 
 export default function Overview() {
+  const { loading: authLoading, user: authUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ name: 'Productor', id: null });
   const [stats, setStats] = useState({ revenue: 0, sales: 0, plays: 0, clients: 0 });
@@ -88,13 +93,13 @@ export default function Overview() {
   // --- EFECTO: CARGA DE DATOS ---
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (!authUser) {
-          setLoading(false);
-          return;
-        }
+      if (authLoading || !authUser) {
+        setLoading(false); // Ensure loading is false if no authUser or still authenticating
+        return;
+      }
 
+      setLoading(true);
+      try {
         const { data: profile } = await supabase
           .from('users')
           .select('nickname, first_name')
@@ -195,11 +200,11 @@ export default function Overview() {
     fetchData();
   }, []);
 
-  if (loading && !chartData) {
+  if (authLoading || (loading && !chartData)) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
         <Loader2 className="animate-spin text-violet-500" size={48} />
-        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 animate-pulse">Cargando centro de mando...</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 animate-pulse">Autenticando sesión...</span>
       </div>
     );
   }
@@ -286,7 +291,9 @@ export default function Overview() {
             </div>
 
             <div className="flex-1 w-full relative">
-              <Line data={chartData} options={chartOptions} />
+              {chartData && (
+                <Line data={chartData} options={chartOptions} />
+              )}
             </div>
           </div>
         </div>

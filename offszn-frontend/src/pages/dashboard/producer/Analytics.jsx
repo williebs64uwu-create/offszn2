@@ -10,6 +10,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAnalytics } from '../../../hooks/useAnalytics';
 import PerformanceChart from '../../../components/dashboard/PerformanceChart';
+import { useAuth } from '../../../store/authStore';
 
 const PERIODS = [
     { id: '7d', label: '7 Días' },
@@ -19,8 +20,18 @@ const PERIODS = [
 
 export default function Analytics() {
     const navigate = useNavigate();
+    const { loading: authLoading } = useAuth();
     const [period, setPeriod] = useState('30d');
-    const { metrics, chartData, topProducts, loading } = useAnalytics(period);
+    const { metrics, chartData, topProducts, loading: analyticsLoading } = useAnalytics(period);
+
+    if (authLoading) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
+                <Loader2 className="animate-spin text-violet-500" size={48} />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 animate-pulse">Sincronizando analytics...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-[1500px] mx-auto space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">

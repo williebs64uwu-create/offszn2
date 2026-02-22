@@ -9,6 +9,7 @@ import {
     Sparkles, LayoutGrid, SlidersHorizontal, ArrowRight,
     Zap
 } from 'lucide-react';
+import { useAuth } from '../../../store/authStore';
 
 const TABS = [
     { id: 'beats', label: 'Beats', icon: Music },
@@ -27,19 +28,24 @@ const FILTERS = [
 
 export default function MyProducts() {
     const navigate = useNavigate();
+    const { loading: authLoading, user } = useAuth(); // Esperar a que la auth hidrate
     const [activeTab, setActiveTab] = useState('beats');
     const [activeFilter, setActiveFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
 
     const {
-        items, loading, selectedIds, fetchProducts,
+        items, loading: productsLoading, selectedIds, fetchProducts,
         toggleSelection, selectAll, deselectAll,
         bulkUpdateVisibility, bulkDelete
     } = useMyProducts();
 
     useEffect(() => {
-        fetchProducts(activeTab, activeFilter);
-    }, [activeTab, activeFilter, fetchProducts]);
+        if (!authLoading && user) {
+            fetchProducts(activeTab, activeFilter);
+        }
+    }, [activeTab, activeFilter, fetchProducts, authLoading, user]);
+
+    const loading = authLoading || (productsLoading && items.length === 0);
 
     const filteredItems = items.filter(item => {
         const title = (item.title || item.name || '').toLowerCase();
@@ -57,6 +63,15 @@ export default function MyProducts() {
             fetchProducts(activeTab, activeFilter);
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
+                <Loader2 className="animate-spin text-violet-500" size={48} />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 animate-pulse">Autenticando sesión...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-[1500px] mx-auto space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-1000">

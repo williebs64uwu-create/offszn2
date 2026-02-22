@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUploadStore } from '../../../store/uploadStore';
-import { Tag as TagIcon, X, ImageIcon, Info, Type, FileText } from 'lucide-react';
+import { Tag as TagIcon, Sparkles, X, ImageIcon, Info, Type, FileText } from 'lucide-react';
 import ImageCropper from '../../../components/ImageCropper';
 
 export default function Step1Details() {

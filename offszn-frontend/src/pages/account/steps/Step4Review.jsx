@@ -1,6 +1,6 @@
 import React from 'react';
 import { useUploadStore } from '../../../store/uploadStore';
-import { CheckCircle2, Music, DollarSign, Tag, Info, AlertCircle, Calendar, Eye, Users, ShieldCheck, Zap, Globe, FileCheck, Layers } from 'lucide-react';
+import { CheckCircle2, HandCoins, Music, DollarSign, Tag, Info, AlertCircle, Calendar, Eye, Users, ShieldCheck, Zap, Globe, FileCheck, Layers } from 'lucide-react';
 
 export default function Step4Review() {
     const {

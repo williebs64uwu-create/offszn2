@@ -80,6 +80,7 @@ export const useBeatUpload = () => {
 
         const { data: publicUrl } = supabase.storage.from('products').getPublicUrl(path);
         productData.image_url = publicUrl.publicUrl;
+        console.log("DEBUG: Final Product Image URL ->", productData.image_url);
       }
 
       // B) Primary Audio (Tagged MP3)
