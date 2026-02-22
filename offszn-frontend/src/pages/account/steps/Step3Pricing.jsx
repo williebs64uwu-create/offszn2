@@ -5,9 +5,12 @@ import { supabase } from '../../../api/client';
 
 export default function Step3Pricing() {
     const {
-        basePrice, promoPrice, isFree, collaborators,
+        productType, basePrice, promoPrice, isFree, collaborators,
         updateField, addCollaborator, removeCollaborator, updateCollaboratorSplit
     } = useUploadStore();
+
+    const isBeat = productType === 'beat';
+    const isKit = productType === 'drumkit' || productType === 'preset';
 
     const [search, setSearch] = useState('');
     const [results, setResults] = useState([]);
@@ -55,18 +58,29 @@ export default function Step3Pricing() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <PriceInput
-                        title="Basic License (MP3)"
-                        description="Uso limitado / Tagged pre-listen"
-                        value={basePrice}
-                        onChange={(v) => updateField('basePrice', v)}
-                    />
-                    <PriceInput
-                        title="Exclusive License (WAV)"
-                        description="Uso industrial / Master HQ quality"
-                        value={promoPrice}
-                        onChange={(v) => updateField('promoPrice', v)}
-                    />
+                    {isBeat ? (
+                        <>
+                            <PriceInput
+                                title="Basic License (MP3)"
+                                description="Uso limitado / Tagged pre-listen"
+                                value={basePrice}
+                                onChange={(v) => updateField('basePrice', v)}
+                            />
+                            <PriceInput
+                                title="Exclusive License (WAV)"
+                                description="Uso industrial / Master HQ quality"
+                                value={promoPrice}
+                                onChange={(v) => updateField('promoPrice', v)}
+                            />
+                        </>
+                    ) : (
+                        <PriceInput
+                            title="Standard Product License"
+                            description="Licencia completa para uso en producciones"
+                            value={basePrice}
+                            onChange={(v) => updateField('basePrice', v)}
+                        />
+                    )}
                 </div>
             </div>
 

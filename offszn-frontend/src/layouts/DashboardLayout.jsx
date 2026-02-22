@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
+import { useUploadStore } from '../store/uploadStore';
 // He cambiado TODOS los iconos por versiones que SÍ existen en BoxIcons
 import {
   BiGridAlt,          // Dashboard
@@ -56,7 +57,13 @@ function Sidebar() {
       <SidebarItem to="/dashboard/my-products" icon={<BiDisc />} label="Mis Kits" active={isActive('/dashboard/my-products')} />
 
       {/* RUTA CORRECTA PARA TU UPLOAD */}
-      <SidebarItem to="/dashboard/upload-beat" icon={<BiCloudUpload />} label="Subir" active={isActive('/dashboard/upload-beat')} />
+      <SidebarItem
+        to="/dashboard/upload-beat"
+        icon={<BiCloudUpload />}
+        label="Subir"
+        active={isActive('/dashboard/upload-beat')}
+        onClick={() => useUploadStore.getState().resetForm()}
+      />
 
       {/* --- GRUPO 2: NEGOCIO --- */}
       <Divider />
@@ -89,10 +96,11 @@ function Sidebar() {
   );
 }
 
-function SidebarItem({ to, icon, label, active }) {
+function SidebarItem({ to, icon, label, active, onClick }) {
   return (
     <Link
       to={to}
+      onClick={onClick}
       className={`
         w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all duration-200 relative group
         ${active

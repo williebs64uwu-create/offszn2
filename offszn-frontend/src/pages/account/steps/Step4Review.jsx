@@ -6,10 +6,18 @@ export default function Step4Review() {
     const {
         title, description, tags, coverImage,
         files, bpm, musicalKey, visibility, date,
-        basePrice, promoPrice, isFree, collaborators
+        basePrice, promoPrice, isFree, collaborators, productType
     } = useUploadStore();
 
-    const minPrice = isFree ? 0 : Math.min(parseFloat(basePrice) || 0, parseFloat(promoPrice) || Infinity);
+    const isBeat = productType === 'beat';
+    const isLoop = productType === 'loopkit';
+    const isKit = productType === 'drumkit' || productType === 'preset';
+
+    const minPrice = isFree ? 0 : (isBeat ? Math.min(parseFloat(basePrice) || 0, parseFloat(promoPrice) || Infinity) : (parseFloat(basePrice) || 0));
+
+    // ... (Confirm Hero content adjustments)
+    const heroTitle = isBeat ? "Beat Infrastructure Ready" : (isKit ? "Kit Distribution Ready" : "Sample Pipeline Ready");
+    const heroDesc = isBeat ? "Protocolo de validación completado. El beat está listo." : "Contenido empaquetado y listo para sincronizar con el marketplace.";
 
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-16">
@@ -21,8 +29,8 @@ export default function Step4Review() {
                     <CheckCircle2 size={32} />
                 </div>
                 <div className="relative z-10">
-                    <h3 className="text-xl font-black text-white uppercase tracking-[0.2em] mb-1">Infrastructure Ready</h3>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Protocolo de validación completado. El beat está listo para sincronizar con el marketplace.</p>
+                    <h3 className="text-xl font-black text-white uppercase tracking-[0.2em] mb-1">{heroTitle}</h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{heroDesc}</p>
                 </div>
             </div>
 
@@ -39,7 +47,7 @@ export default function Step4Review() {
                                 <img src={coverImage.preview} alt="Preview" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full bg-[#050505] flex items-center justify-center text-gray-900">
-                                    <Music size={80} strokeWidth={1} />
+                                    {isBeat ? <Music size={80} strokeWidth={1} /> : <Layers size={80} strokeWidth={1} />}
                                 </div>
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90 transition-opacity duration-1000 group-hover:opacity-70"></div>
@@ -61,18 +69,18 @@ export default function Step4Review() {
                         <div className="p-8 space-y-4">
                             <h3 className="text-2xl font-black text-white truncate tracking-tight uppercase leading-tight">{title || 'Untitled Prototype'}</h3>
                             <div className="flex items-center gap-4 text-[10px] font-black uppercase text-gray-600 tracking-[0.2em]">
-                                <span className="flex items-center gap-2"><Zap size={12} className="text-violet-500" /> {bpm || '--'} BPM</span>
-                                <span className="w-1 h-1 rounded-full bg-white/10"></span>
-                                <span className="flex items-center gap-2 capitalize"><Globe size={12} /> {visibility}</span>
+                                {bpm && <span className="flex items-center gap-2"><Zap size={12} className="text-violet-500" /> {bpm} BPM</span>}
+                                {bpm && <span className="w-1 h-1 rounded-full bg-white/10"></span>}
+                                <span className="flex items-center gap-2 capitalize"><Globe size={12} /> {productType} • {visibility}</span>
                             </div>
 
                             {/* Tags Array */}
                             <div className="flex flex-wrap gap-2 pt-2">
-                                {tags.length > 0 ? tags.map(tag => (
+                                {tags.map(tag => (
                                     <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-white/[0.02] text-gray-500 px-3 py-1.5 rounded-xl border border-white/5 group-hover:border-violet-500/20 group-hover:text-violet-400 transition-all">
                                         #{tag}
                                     </span>
-                                )) : <div className="h-4 w-20 bg-white/5 rounded-full animate-pulse"></div>}
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -86,9 +94,15 @@ export default function Step4Review() {
                             title="Asset Pipeline"
                             content={
                                 <div className="flex flex-wrap gap-3 mt-4">
-                                    <FileBadge label="Encoded MP3" exists={files.mp3_tagged} color="emerald" />
-                                    <FileBadge label="Lossless WAV" exists={files.wav_untagged} color="violet" />
-                                    <FileBadge label="Multitrack ZIP" exists={files.stems} color="blue" />
+                                    {isBeat ? (
+                                        <>
+                                            <FileBadge label="Encoded MP3" exists={files.mp3_tagged} color="emerald" />
+                                            <FileBadge label="Lossless WAV" exists={files.wav_untagged} color="violet" />
+                                            <FileBadge label="Multitrack ZIP" exists={files.stems} color="blue" />
+                                        </>
+                                    ) : (
+                                        <FileBadge label="Main Product ZIP" exists={files.zip_file} color="violet" />
+                                    )}
                                 </div>
                             }
                         />
@@ -97,8 +111,14 @@ export default function Step4Review() {
                             title="Monetization"
                             content={
                                 <div className="space-y-2 mt-4">
-                                    <PriceRow label="Studio License" price={basePrice} />
-                                    <PriceRow label="Commercial License" price={promoPrice} />
+                                    {isBeat ? (
+                                        <>
+                                            <PriceRow label="Studio License" price={basePrice} />
+                                            <PriceRow label="Commercial License" price={promoPrice} />
+                                        </>
+                                    ) : (
+                                        <PriceRow label="Product Price" price={basePrice} />
+                                    )}
                                     {isFree && <div className="text-[9px] text-emerald-500 font-black uppercase tracking-widest mt-2 border-t border-emerald-500/10 pt-2 flex items-center gap-2"> <Zap size={10} /> Free Download Enabled</div>}
                                 </div>
                             }

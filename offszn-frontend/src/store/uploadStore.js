@@ -47,7 +47,16 @@ export const useUploadStore = create(
 
             setStep: (step) => set({ currentStep: step }),
             nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 4) })),
-            prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 1) })),
+            prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 0) })),
+
+            selectType: (type) => set({
+                productType: type,
+                currentStep: 1,
+                // Limpiar campos específicos si se cambia de tipo
+                bpm: '',
+                musicalKey: '',
+                tags: []
+            }),
 
             updateField: (field, value) => set({ [field]: value }),
 

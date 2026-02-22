@@ -4,9 +4,14 @@ import { Music, FileAudio, Package, Hash, Zap, Eye, Calendar, Shield, Cpu, Activ
 
 export default function Step2Files() {
     const {
+        productType,
         files, bpm, musicalKey, visibility, date,
         updateField, updateFiles
     } = useUploadStore();
+
+    const isBeat = productType === 'beat';
+    const isLoop = productType === 'loopkit';
+    const isKit = productType === 'drumkit' || productType === 'preset';
 
     const handleFileChange = (key, file) => {
         if (!file) return;
@@ -22,110 +27,134 @@ export default function Step2Files() {
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* --- AUDIO ASSETS PIPELINE --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <UploadZone
-                    label="MP3 Preview (Tagged)"
-                    description="Gratis / Preescucha con marcas de agua"
-                    file={files.mp3_tagged}
-                    accept=".mp3"
-                    icon={<Music size={28} />}
-                    onChange={(f) => handleFileChange('mp3_tagged', f)}
-                />
-                <UploadZone
-                    label="High-Res WAV (Master)"
-                    description="Producto final sin marcas de agua"
-                    file={files.wav_untagged}
-                    accept=".wav"
-                    icon={<FileAudio size={28} />}
-                    onChange={(f) => handleFileChange('wav_untagged', f)}
-                />
-            </div>
+            {isBeat ? (
+                <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <UploadZone
+                            label="MP3 Preview (Tagged)"
+                            description="Gratis / Preescucha con marcas de agua"
+                            file={files.mp3_tagged}
+                            accept=".mp3"
+                            icon={<Music size={28} />}
+                            onChange={(f) => handleFileChange('mp3_tagged', f)}
+                        />
+                        <UploadZone
+                            label="High-Res WAV (Master)"
+                            description="Producto final sin marcas de agua"
+                            file={files.wav_untagged}
+                            accept=".wav"
+                            icon={<FileAudio size={28} />}
+                            onChange={(f) => handleFileChange('wav_untagged', f)}
+                        />
+                    </div>
 
-            <UploadZone
-                label="Stems / Trackout Container"
-                description="Opcional: Archivo .ZIP con canales separados"
-                file={files.stems}
-                accept=".zip,.rar"
-                icon={<Package size={28} />}
-                onChange={(f) => handleFileChange('stems', f)}
-            />
+                    <UploadZone
+                        label="Stems / Trackout Container"
+                        description="Opcional: Archivo .ZIP con canales separados"
+                        file={files.stems}
+                        accept=".zip,.rar"
+                        icon={<Package size={28} />}
+                        onChange={(f) => handleFileChange('stems', f)}
+                    />
+                </>
+            ) : (
+                <UploadZone
+                    label={productType === 'preset' ? "Preset Bank (.ZIP / .RAR)" : "Master Kit / Pack (.ZIP / .RAR)"}
+                    description="Contenido completo del producto comprimido"
+                    file={files.zip_file}
+                    accept=".zip,.rar"
+                    icon={<Package size={28} />}
+                    onChange={(f) => handleFileChange('zip_file', f)}
+                />
+            )}
 
             {/* --- TECHNICAL METADATA --- */}
             <div className="pt-12 border-t border-white/5 space-y-10">
-                <div className="flex items-center gap-4 text-[10px] font-black text-gray-700 uppercase tracking-[0.4em]">
-                    <Cpu size={14} className="text-violet-500/40" /> Technical Data
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-
-                    {/* BPM */}
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Tempo (BPM)</label>
-                        <div className="relative group">
-                            <input
-                                type="number"
-                                placeholder="140"
-                                value={bpm}
-                                onChange={(e) => updateField('bpm', e.target.value)}
-                                className="w-full bg-black border border-white/5 rounded-3xl px-6 py-5 pl-12 text-white font-black text-lg focus:outline-none focus:border-violet-500 transition-all shadow-inner placeholder:text-white/5"
-                            />
-                            <Hash size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-800 group-focus-within:text-violet-500 transition-colors" />
+                {(isBeat || isLoop) && (
+                    <>
+                        <div className="flex items-center gap-4 text-[10px] font-black text-gray-700 uppercase tracking-[0.4em]">
+                            <Cpu size={14} className="text-violet-500/40" /> Technical Data
                         </div>
-                    </div>
 
-                    {/* Scale / Key */}
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Root Key</label>
-                        <div className="relative group">
-                            <select
-                                value={musicalKey}
-                                onChange={(e) => updateField('musicalKey', e.target.value)}
-                                className="w-full bg-black border border-white/5 rounded-3xl px-6 py-5 pl-12 text-white font-black text-lg focus:outline-none focus:border-violet-500 transition-all appearance-none cursor-pointer shadow-inner"
-                            >
-                                <option value="" className="bg-[#0A0A0A]">Select...</option>
-                                {MUSIC_KEYS.map(k => <option key={k} value={k} className="bg-[#0A0A0A]">{k}</option>)}
-                            </select>
-                            <Zap size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-800 group-focus-within:text-violet-500 transition-colors" />
-                            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-800 group-focus-within:text-violet-500 transition-colors">
-                                <Activity size={16} className="rotate-90" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {/* BPM */}
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Tempo (BPM)</label>
+                                <div className="relative group">
+                                    <input
+                                        type="number"
+                                        placeholder="140"
+                                        value={bpm}
+                                        onChange={(e) => updateField('bpm', e.target.value)}
+                                        className="w-full bg-black border border-white/5 rounded-3xl px-6 py-5 pl-12 text-white font-black text-lg focus:outline-none focus:border-violet-500 transition-all shadow-inner placeholder:text-white/5"
+                                    />
+                                    <Hash size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-800 group-focus-within:text-violet-500 transition-colors" />
+                                </div>
+                            </div>
+
+                            {/* Scale / Key */}
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Root Key</label>
+                                <div className="relative group">
+                                    <select
+                                        value={musicalKey}
+                                        onChange={(e) => updateField('musicalKey', e.target.value)}
+                                        className="w-full bg-black border border-white/5 rounded-3xl px-6 py-5 pl-12 text-white font-black text-lg focus:outline-none focus:border-violet-500 transition-all appearance-none cursor-pointer shadow-inner"
+                                    >
+                                        <option value="" className="bg-[#0A0A0A]">Select...</option>
+                                        {MUSIC_KEYS.map(k => <option key={k} value={k} className="bg-[#0A0A0A]">{k}</option>)}
+                                    </select>
+                                    <Zap size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-800 group-focus-within:text-violet-500 transition-colors" />
+                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-800 group-focus-within:text-violet-500 transition-colors">
+                                        <Activity size={16} className="rotate-90" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </>
+                )}
+
+                <div className="space-y-10">
+                    <div className="flex items-center gap-4 text-[10px] font-black text-gray-700 uppercase tracking-[0.4em]">
+                        <Shield size={14} className="text-violet-500/40" /> Access Protocol
                     </div>
 
-                    {/* Visibility */}
-                    <div className="md:col-span-2 space-y-4">
-                        <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Access Protocol</label>
-                        <div className="grid grid-cols-3 gap-2 bg-black border border-white/5 p-1.5 rounded-3xl shadow-inner">
-                            {[
-                                { id: 'public', label: 'Public', icon: <Eye size={12} /> },
-                                { id: 'private', label: 'Private (Draft)', icon: <Shield size={12} /> },
-                                { id: 'unlisted', label: 'Unlisted', icon: <Activity size={12} /> }
-                            ].map(v => (
-                                <button
-                                    key={v.id}
-                                    type="button"
-                                    onClick={() => updateField('visibility', v.id)}
-                                    className={`flex items-center justify-center gap-2 py-4 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all duration-500 ${visibility === v.id ? 'bg-white text-black shadow-2xl scale-[1.02]' : 'text-gray-700 hover:text-white hover:bg-white/5'}`}
-                                >
-                                    {v.icon}
-                                    {v.label}
-                                </button>
-                            ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {/* Visibility */}
+                        <div className="md:col-span-2 space-y-4">
+                            <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Visibility Setting</label>
+                            <div className="grid grid-cols-3 gap-2 bg-black border border-white/5 p-1.5 rounded-3xl shadow-inner">
+                                {[
+                                    { id: 'public', label: 'Public', icon: <Eye size={12} /> },
+                                    { id: 'private', label: 'Private (Draft)', icon: <Shield size={12} /> },
+                                    { id: 'unlisted', label: 'Unlisted', icon: <Activity size={12} /> }
+                                ].map(v => (
+                                    <button
+                                        key={v.id}
+                                        type="button"
+                                        onClick={() => updateField('visibility', v.id)}
+                                        className={`flex items-center justify-center gap-2 py-4 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all duration-500 ${visibility === v.id ? 'bg-white text-black shadow-2xl scale-[1.02]' : 'text-gray-700 hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        {v.icon}
+                                        {v.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Release Schedule */}
-                <div className="space-y-4 max-w-sm">
-                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Release Schedule</label>
-                    <div className="relative group">
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => updateField('date', e.target.value)}
-                            className="w-full bg-black border border-white/5 rounded-[28px] px-8 py-5 pl-14 text-white font-black uppercase tracking-[0.2em] text-[11px] focus:outline-none focus:border-violet-500 transition-all [color-scheme:dark] shadow-inner"
-                        />
-                        <Calendar size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-800 group-focus-within:text-violet-500 transition-colors" />
+                        {/* Release Schedule */}
+                        <div className="md:col-span-2 space-y-4">
+                            <label className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em] ml-4">Release Schedule</label>
+                            <div className="relative group">
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => updateField('date', e.target.value)}
+                                    className="w-full bg-black border border-white/5 rounded-[28px] px-8 py-5 pl-14 text-white font-black uppercase tracking-[0.2em] text-[11px] focus:outline-none focus:border-violet-500 transition-all [color-scheme:dark] shadow-inner"
+                                />
+                                <Calendar size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-800 group-focus-within:text-violet-500 transition-colors" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

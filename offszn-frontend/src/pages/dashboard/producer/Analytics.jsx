@@ -22,7 +22,7 @@ export default function Analytics() {
     const navigate = useNavigate();
     const { loading: authLoading } = useAuth();
     const [period, setPeriod] = useState('30d');
-    const { metrics, chartData, topProducts, loading: analyticsLoading } = useAnalytics(period);
+    const { metrics, chartData, topProducts, loading } = useAnalytics(period);
 
     if (authLoading) {
         return (

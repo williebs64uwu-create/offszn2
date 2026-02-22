@@ -98,10 +98,10 @@ export const useBeatUpload = () => {
       }
 
       // C) Main Product File (WAV / ZIP / Preset) - Secure Storage
-      if (fileObjects.wavFile || fileObjects.zip_file || fileObjects.preset_file) {
+      if (fileObjects.wavFile || fileObjects.zipFile) {
         setUploadProgress({ message: 'Subiendo archivo principal...', progress: 70 });
-        const mainFile = fileObjects.wavFile || fileObjects.zip_file || fileObjects.preset_file;
-        const folder = fileObjects.wavFile ? 'wav_untagged' : (fileObjects.preset_file ? 'presets' : 'kits');
+        const mainFile = fileObjects.wavFile || fileObjects.zipFile;
+        const folder = fileObjects.wavFile ? 'wav_untagged' : (productData.product_type === 'preset' ? 'presets' : 'kits');
         const name = sanitize(mainFile.name);
         const path = `${user.id}/${folder}/${Date.now()}_${name}`;
 
@@ -110,8 +110,11 @@ export const useBeatUpload = () => {
 
         // For secure products, we only store the internal path
         if (fileObjects.wavFile) productData.wav_url = data.path;
-        if (fileObjects.preset_file) productData.preset_file = data.path;
-        if (fileObjects.zip_file) productData.stems_url = data.path; // Reusing stems_url for ZIP kits
+        if (fileObjects.zipFile) {
+          // Kits and Presets store their main download in a dedicated field or reuse stems/wav if needed by existing cards
+          productData.stems_url = data.path; // Keep stems_url for compatibility with download logic if it expects it
+          productData.audio_url = null; // Kits don't have a preview player url unless we add an mp3_tagged for them
+        }
       }
 
       // D) Optional Stems (for beats)

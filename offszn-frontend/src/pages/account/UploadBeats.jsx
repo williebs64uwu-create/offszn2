@@ -11,6 +11,7 @@ import Step1Details from './steps/Step1Details';
 import Step2Files from './steps/Step2Files';
 import Step3Pricing from './steps/Step3Pricing';
 import Step4Review from './steps/Step4Review';
+import TypeSelector from './steps/TypeSelector';
 
 export default function UploadBeats() {
   const navigate = useNavigate();
@@ -40,7 +41,8 @@ export default function UploadBeats() {
       coverFile: coverImage?.file || null,
       mp3File: files.mp3_tagged,
       wavFile: files.wav_untagged,
-      stemsFile: files.stems
+      stemsFile: files.stems,
+      zipFile: files.zip_file // New mapping for Kits/Presets
     };
 
     const formState = useUploadStore.getState();
@@ -60,6 +62,21 @@ export default function UploadBeats() {
     { id: 3, label: 'Precios', component: <Step3Pricing /> },
     { id: 4, label: 'Revisión', component: <Step4Review /> },
   ];
+
+  // Si estamos en el paso 0, solo mostrar el selector de tipo
+  if (currentStep === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-8">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="absolute top-10 left-10 p-3 rounded-2xl hover:bg-white/10 text-gray-500 hover:text-white transition-all border border-transparent hover:border-white/5 group z-50"
+        >
+          <X size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+        </button>
+        <TypeSelector />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-violet-500/30 pb-32">
@@ -159,7 +176,7 @@ export default function UploadBeats() {
           </div>
 
           <div className="relative z-10">
-            {steps[currentStep - 1].component}
+            {steps.find(s => s.id === currentStep)?.component}
           </div>
         </main>
       </div>
@@ -170,12 +187,12 @@ export default function UploadBeats() {
 
           <button
             onClick={prevStep}
-            disabled={currentStep === 1 || isPublishing}
+            disabled={isPublishing}
             className={`group flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all
-              ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-500 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 shadow-2xl'}`}
+              ${currentStep === 0 ? 'opacity-0 pointer-events-none' : 'text-gray-500 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 shadow-2xl'}`}
           >
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-            Anterior Step
+            {currentStep === 1 ? 'Volver al Selector' : 'Anterior Step'}
           </button>
 
           <div className="flex gap-6">
@@ -194,7 +211,7 @@ export default function UploadBeats() {
                 className="group flex items-center gap-4 px-16 py-5 rounded-[28px] bg-violet-600 text-white text-[12px] font-black uppercase tracking-[0.3em] hover:bg-violet-500 transition-all shadow-2xl shadow-violet-900/40 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 overflow-hidden relative"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
-                {isPublishing ? 'Publishing...' : 'Lanzar Beat'}
+                {isPublishing ? 'Publishing...' : `Lanzar ${productType || 'Item'}`}
                 {!isPublishing && <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />}
               </button>
             )}
