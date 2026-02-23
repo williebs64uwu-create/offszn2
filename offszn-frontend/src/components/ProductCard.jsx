@@ -1,9 +1,17 @@
 
 import React from 'react';
 import { useSecureUrl } from '../hooks/useSecureUrl';
+import { useCartStore } from '../store/cartStore';
 
 const ProductCard = ({ product, isPlaying, onPlay, formatPrice }) => {
     const { url: imageUrl, loading } = useSecureUrl(product.image_url);
+    const { addItem } = useCartStore();
+
+    const handleAddToCart = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        addItem(product);
+    };
 
     return (
         <div className="group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/5 hover:border-violet-500/50 transition-all duration-300 hover:-translate-y-1">
@@ -40,7 +48,10 @@ const ProductCard = ({ product, isPlaying, onPlay, formatPrice }) => {
                     <span className={`text-sm font-bold ${product.is_free ? 'text-green-500' : 'text-violet-300'}`}>
                         {product.is_free ? 'FREE' : formatPrice(product.price_basic)}
                     </span>
-                    <button className="text-zinc-400 hover:text-white transition-colors">
+                    <button
+                        onClick={handleAddToCart}
+                        className="text-zinc-400 hover:text-white transition-colors"
+                    >
                         <i className="bi bi-cart-plus text-lg"></i>
                     </button>
                 </div>

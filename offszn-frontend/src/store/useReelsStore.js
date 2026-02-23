@@ -101,9 +101,12 @@ export const useReelsStore = create((set, get) => ({
 
     incrementView: async (reelId) => {
         try {
-            await supabase.rpc('increment_reel_views', { row_id: reelId });
+            const { error } = await supabase.rpc('increment_reel_views', { row_id: reelId });
+            if (error) {
+                // Ignore silently in frontend as requested, to prevent UI from breaking
+            }
         } catch (e) {
-            console.error('Error incrementing reel views:', e);
+            // Silently ignore
         }
     }
 }));

@@ -74,8 +74,6 @@ const ChatFeed = () => {
                 </div>
 
                 <div className="flex items-center gap-4 text-white">
-                    <button className="hidden sm:block p-2 hover:bg-[#1a1a1a] rounded-full transition-colors"><Phone size={20} /></button>
-                    <button className="hidden sm:block p-2 hover:bg-[#1a1a1a] rounded-full transition-colors"><Video size={20} /></button>
                     <button className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors"><Info size={22} /></button>
                 </div>
             </div>

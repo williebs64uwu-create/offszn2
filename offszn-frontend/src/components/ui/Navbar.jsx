@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ShoppingCart, Bell, LogOut, Settings, Heart, Disc, Sliders, Music, CheckCircle, Users, UserPlus, PlayCircle, BarChart, Briefcase, Tag, Rocket, MessageSquare } from 'lucide-react';
+import { ChevronDown, ShoppingCart, Bell, LogOut, Settings, Heart, Disc, Sliders, Music, CheckCircle, Users, UserPlus, PlayCircle, BarChart, Briefcase, Tag, Rocket, MessageSquare, Calendar, BookOpen, Target, UploadCloud, LayoutDashboard, Layers, History, Gift, LifeBuoy } from 'lucide-react';
 import clsx from 'clsx';
 import PromoBanner from './PromoBanner';
 import SearchBar from './SearchBar';
@@ -64,6 +64,7 @@ const Navbar = () => {
                       <MegaLink to="/recursos/drum-kits" icon={Disc} label="Drum Kits" />
                       <MegaLink to="/recursos/presets" icon={Sliders} label="Presets" />
                       <MegaLink to="/recursos/samples" icon={Music} label="Loops" />
+                      <MegaLink to="/recursos/one-shots" icon={Target} label="One-Shots" />
                       <MegaLink to="/recursos/free" icon={CheckCircle} label="Gratis" />
                     </div>
                   </div>
@@ -76,6 +77,12 @@ const Navbar = () => {
                       <MegaLink to="/collabs" icon={UserPlus} label="Collabs" />
                       <MegaLink to="/reels" icon={PlayCircle} label="Reels" />
                       <MegaLink to="/feed" icon={PlayCircle} label="Feed" />
+                      <MegaLink to="/eventos" icon={Calendar} label="Eventos" />
+                      <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 opacity-60 cursor-not-allowed">
+                        <BookOpen className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm font-medium">Cursos</span>
+                        <span className="text-[8px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase font-bold ml-auto border border-primary/30">SOON</span>
+                      </div>
                     </div>
                   </div>
 
@@ -86,6 +93,7 @@ const Navbar = () => {
                       <Link to="/beats/hiphop" className="text-sm text-gray-400 hover:text-white hover:translate-x-1 transition-transform px-2 py-1">Hip-Hop</Link>
                       <Link to="/beats/trap" className="text-sm text-gray-400 hover:text-white hover:translate-x-1 transition-transform px-2 py-1">Trap</Link>
                       <Link to="/beats/reggaeton" className="text-sm text-gray-400 hover:text-white hover:translate-x-1 transition-transform px-2 py-1">Reggaetón</Link>
+                      <Link to="/explorar" className="text-[10px] text-gray-500 hover:text-white uppercase font-bold tracking-widest mt-2 px-2 py-1 border-t border-white/5 pt-2 flex items-center gap-1 transition-colors">Ver todos <span className="text-sm ml-1">→</span></Link>
                     </div>
                   </div>
                 </div>
@@ -156,9 +164,21 @@ const Navbar = () => {
                 <Link to="/mensajes" className="w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white">
                   <MessageSquare className="w-5 h-5" />
                 </Link>
-                <button className="w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white">
-                  <Bell className="w-5 h-5" />
-                </button>
+                <div className="relative">
+                  <button onClick={() => toggleDropdown('notifications')} className="w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white relative">
+                    <Bell className="w-5 h-5" />
+                  </button>
+                  <div className={clsx("absolute top-full right-0 mt-3 w-72 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl transition-all duration-200 origin-top-right z-[1002]", activeDropdown === 'notifications' ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2")}>
+                    <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                      <h4 className="font-bold text-sm text-white">Notificaciones</h4>
+                      <Link to="/notificaciones" className="text-[10px] text-primary hover:text-primary-light uppercase tracking-widest font-bold">Ver Todo</Link>
+                    </div>
+                    <div className="p-8 flex flex-col items-center justify-center text-center opacity-50">
+                      <Bell className="w-10 h-10 mb-3 text-gray-500" />
+                      <p className="text-sm text-gray-400">No tienes notificaciones recientes</p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="relative">
                   <button onClick={() => toggleDropdown('user')} className="w-9 h-9 rounded-full overflow-hidden border border-white/10 hover:border-white/30 transition-colors">
@@ -171,23 +191,53 @@ const Navbar = () => {
                     )}
                   </button>
 
-                  <div className={clsx("absolute top-full right-0 mt-3 w-80 bg-[#141414] border border-white/10 rounded-2xl p-4 shadow-2xl transition-all duration-200 origin-top-right", activeDropdown === 'user' ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2")}>
-                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
-                      <div className="w-10 h-10 rounded-full bg-[#333] flex items-center justify-center text-white font-bold">
-                        {user.email?.charAt(0).toUpperCase()}
+                  <div className={clsx("absolute top-full right-0 mt-3 w-80 lg:w-96 bg-[#141414] border border-white/10 rounded-2xl p-4 shadow-2xl transition-all duration-200 origin-top-right", activeDropdown === 'user' ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2")}>
+                    {/* Header Card */}
+                    <Link to={`/@${profile?.nickname}`} className="flex items-center justify-between gap-3 bg-[#232323] hover:bg-[#2a2a2a] border border-white/5 rounded-xl p-4 mb-3 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-[#333] flex items-center justify-center text-white font-bold text-lg overflow-hidden flex-shrink-0">
+                          {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="User" className="w-full h-full object-cover" />
+                          ) : (
+                            user.email?.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <h4 className="text-white text-base font-semibold group-hover:text-primary transition-colors">{profile?.nickname || 'Usuario'}</h4>
+                          <span className="text-xs text-gray-500 font-bold tracking-wider">0 Créditos</span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-white text-sm font-semibold">{profile?.nickname || 'Usuario'}</h4>
-                        <span className="text-xs text-gray-500">{user.email}</span>
-                      </div>
+                      <Link to="/dashboard/plans" className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors flex-shrink-0">
+                        <Rocket className="w-3 h-3 text-primary" /> Suscribirse
+                      </Link>
+                    </Link>
+
+                    {/* Quick Access Grid */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <Link to="/dashboard" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-[#232323] border border-white/5 rounded-xl py-4 transition-colors">
+                        <LayoutDashboard className="w-5 h-5 text-gray-400" />
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Dashboard</span>
+                      </Link>
+                      <Link to="/dashboard/purchases" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-[#232323] border border-white/5 rounded-xl py-4 transition-colors">
+                        <Layers className="w-5 h-5 text-gray-400" />
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Compras</span>
+                      </Link>
+                      <Link to="/mensajes" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-[#232323] border border-white/5 rounded-xl py-4 transition-colors">
+                        <MessageSquare className="w-5 h-5 text-gray-400" />
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Mensajes</span>
+                      </Link>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <UserLink to="/dashboard/plans" icon={Rocket} label="Mejorar Plan" className="text-amber-400" />
-                      <UserLink to="/dashboard/coupons" icon={Tag} label="Cupones" />
-                      <UserLink to="/dashboard/analytics" icon={BarChart} label="Analíticas" />
-                      <UserLink to="/dashboard/collaborations" icon={Users} label="Colaboraciones" />
-                      <UserLink to="/dashboard/licenses" icon={Settings} label="Configuración" />
+                    {/* Links List */}
+                    <div className="flex flex-col gap-0.5">
+                      <UserLink to="/dashboard/favorites" icon={Heart} label="Mis Favoritos" />
+                      <UserLink to="/dashboard/gift-cards" icon={Gift} label="Gift Cards" />
+                      <UserLink to="/dashboard/history" icon={History} label="Historial" />
+
+                      <div className="h-px bg-white/5 my-2"></div>
+
+                      <UserLink to="/dashboard/account" icon={Settings} label="Configuración" />
+                      <UserLink to="/help" icon={LifeBuoy} label="Centro de Ayuda" />
 
                       <button
                         onClick={signOut}
@@ -199,8 +249,8 @@ const Navbar = () => {
                   </div>
                 </div>
 
-                <Link to="/dashboard/upload-beat" className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-full text-sm font-bold transition-all ml-2 flex items-center gap-2">
-                  Subir
+                <Link to="/dashboard/upload-beat" className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-full text-sm font-bold transition-all ml-2 flex items-center gap-2 group shadow-[0_4px_15px_rgba(114,9,183,0.3)]">
+                  <UploadCloud className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" /> Subir
                 </Link>
               </div>
             ) : (

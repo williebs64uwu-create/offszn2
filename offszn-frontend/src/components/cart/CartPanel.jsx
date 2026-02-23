@@ -34,7 +34,7 @@ export default function CartPanel({ isOpen, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[110] flex justify-end">
+        <div className="fixed inset-0 z-[9999] flex justify-end">
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
                 onClick={onClose}
