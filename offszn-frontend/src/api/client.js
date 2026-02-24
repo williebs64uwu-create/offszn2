@@ -13,7 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 const isProduction = import.meta.env.PROD;
 
 const API_URL = import.meta.env.VITE_API_BASE_URL ||
-  (isProduction ? 'https://offszn-oc7c.onrender.com/api' : 'http://localhost:3000/api');
+  (isProduction ? 'https://offszn2.onrender.com/api' : 'http://localhost:3000/api');
 
 export const apiClient = axios.create({
   baseURL: API_URL,

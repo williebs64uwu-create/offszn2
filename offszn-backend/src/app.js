@@ -32,6 +32,7 @@ const allowedOrigins = [
     'https://offszn-oc7c.onrender.com',
     'https://offszn.onrender.com',
     'https://offszn1.onrender.com',
+    'https://offszn2.onrender.com',
     'https://offszn-academy.onrender.com',
     'http://localhost:5173',
     'http://localhost:5500',
