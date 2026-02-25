@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 const initialFormState = {
-    currentStep: 1,
+    currentStep: 0,
     productType: 'beat', // 'beat', 'drumkit', 'loopkit', 'preset'
 
     // Step 1: Details
@@ -27,6 +27,7 @@ const initialFormState = {
     bpm: '',
     musicalKey: '',
     category: '', // For presets
+    soundCount: '', // For kits/presets
 
     // Step 3: Pricing
     basePrice: '',
@@ -38,6 +39,12 @@ const initialFormState = {
     isValid: false,
     isPublishing: false,
     publishProgress: 0,
+
+    // YouTube Sync (Phase 20)
+    youtubeSync: false,
+    youtubeStatus: 'idle', // 'idle', 'rendering', 'uploading', 'success', 'error'
+    youtubeProgress: 0,
+    youtubeVideoId: null,
 };
 
 export const useUploadStore = create(
@@ -90,6 +97,11 @@ export const useUploadStore = create(
             })),
 
             resetForm: () => set(initialFormState),
+
+            setYoutubeSync: (sync) => set({ youtubeSync: sync }),
+            setYoutubeStatus: (status) => set({ youtubeStatus: status }),
+            setYoutubeProgress: (progress) => set({ youtubeProgress: progress }),
+            setYoutubeVideoId: (id) => set({ youtubeVideoId: id }),
         }),
         {
             name: 'offszn-upload-draft',

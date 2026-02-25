@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@paypal/react-paypal-js": "^8.9.2",
     "@studio-freight/lenis": "^1.0.42",
     "@supabase/supabase-js": "^2.93.3",

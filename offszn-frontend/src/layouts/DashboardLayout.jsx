@@ -56,12 +56,11 @@ function Sidebar() {
       <SidebarItem to="/dashboard" icon={<BiGridAlt />} label="Dashboard" active={location.pathname === '/dashboard' || location.pathname === '/dashboard/'} />
       <SidebarItem to="/dashboard/my-products" icon={<BiDisc />} label="Mis Kits" active={isActive('/dashboard/my-products')} />
 
-      {/* RUTA CORRECTA PARA TU UPLOAD */}
       <SidebarItem
-        to="/dashboard/upload-beat"
+        to="/dashboard/upload"
         icon={<BiCloudUpload />}
         label="Subir"
-        active={isActive('/dashboard/upload-beat')}
+        active={isActive('/dashboard/upload')}
         onClick={() => useUploadStore.getState().resetForm()}
       />
 

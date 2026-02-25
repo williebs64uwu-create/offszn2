@@ -49,7 +49,7 @@ export default function YouTubeImport() {
         }
 
         setImporting(false);
-        navigate('/dashboard/upload-beat'); // Correct path
+        navigate('/dashboard/upload'); // Correct path
     };
 
     return (

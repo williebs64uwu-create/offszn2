@@ -35,7 +35,7 @@ import Welcome from '../pages/auth/Welcome';
 // Pages - Dashboard
 import Overview from '../pages/dashboard/Overview';
 import AccountSettings from '../pages/dashboard/AccountSettings';
-import UploadBeats from '../pages/account/UploadBeats';
+import UploadWizard from '../pages/account/UploadWizard';
 import EditBeat from '../pages/account/EditBeat';
 import YouTubeImport from '../pages/account/YouTubeImport';
 import MyProducts from '../pages/dashboard/producer/MyProducts';
@@ -120,7 +120,7 @@ const AppRouter = () => {
           <Route path="my-purchases" element={<MyPurchases />} />
 
           {/* RUTA DEL WIZARD */}
-          <Route path="upload-beat" element={<UploadBeats />} />
+          <Route path="upload" element={<UploadWizard />} />
           <Route path="edit-beat/:id" element={<EditBeat />} />
           <Route path="import-youtube" element={<YouTubeImport />} />
           <Route path="my-products" element={<MyProducts />} />

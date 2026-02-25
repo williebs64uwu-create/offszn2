@@ -1,12 +1,14 @@
 import React from 'react';
 import { useUploadStore } from '../../../store/uploadStore';
-import { CheckCircle2, HandCoins, Music, DollarSign, Tag, Info, AlertCircle, Calendar, Eye, Users, ShieldCheck, Zap, Globe, FileCheck, Layers } from 'lucide-react';
+import { CheckCircle2, HandCoins, Music, DollarSign, Tag, Info, AlertCircle, Calendar, Eye, Users, ShieldCheck, Zap, Globe, FileCheck, Layers, Youtube, Play } from 'lucide-react';
 
 export default function Step4Review() {
     const {
         title, description, tags, coverImage,
         files, bpm, musicalKey, visibility, date,
-        basePrice, promoPrice, isFree, collaborators, productType
+        basePrice, promoPrice, isFree, collaborators, productType,
+        youtubeSync, setYoutubeSync,
+        category
     } = useUploadStore();
 
     const isBeat = productType === 'beat';
@@ -44,7 +46,7 @@ export default function Step4Review() {
                         {/* Cover Image Engine */}
                         <div className="aspect-square relative overflow-hidden">
                             {coverImage?.preview ? (
-                                <img src={coverImage.preview} alt="Preview" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                                <img src={coverImage.preview} alt="Preview" crossOrigin="anonymous" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full bg-[#050505] flex items-center justify-center text-gray-900">
                                     {isBeat ? <Music size={80} strokeWidth={1} /> : <Layers size={80} strokeWidth={1} />}
@@ -71,7 +73,7 @@ export default function Step4Review() {
                             <div className="flex items-center gap-4 text-[10px] font-black uppercase text-gray-600 tracking-[0.2em]">
                                 {bpm && <span className="flex items-center gap-2"><Zap size={12} className="text-violet-500" /> {bpm} BPM</span>}
                                 {bpm && <span className="w-1 h-1 rounded-full bg-white/10"></span>}
-                                <span className="flex items-center gap-2 capitalize"><Globe size={12} /> {productType} • {visibility}</span>
+                                <span className="flex items-center gap-2 capitalize"><Globe size={12} /> {productType} {category && `• ${category}`} • {visibility}</span>
                             </div>
 
                             {/* Tags Array */}
@@ -149,6 +151,34 @@ export default function Step4Review() {
                                     <div className="w-10 h-10 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-gray-800">
                                         <Layers size={20} />
                                     </div>
+                                </div>
+                            }
+                        />
+                        <SummaryBlock
+                            icon={<Youtube size={18} className="text-red-500" />}
+                            title="YouTube Release"
+                            content={
+                                <div className="flex flex-col gap-4 mt-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Sincronizar Canal</span>
+                                        <button
+                                            onClick={() => setYoutubeSync(!youtubeSync)}
+                                            className={`w-12 h-6 rounded-full transition-all relative ${youtubeSync ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-white/10'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${youtubeSync ? 'left-7' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                    {youtubeSync && (
+                                        <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl flex items-center gap-3 animate-in zoom-in duration-300">
+                                            <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                                                <Play size={14} className="text-red-500 fill-current" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-white font-black uppercase tracking-tight">Visualizer Automático</p>
+                                                <p className="text-[9px] text-gray-600 font-medium">Se generará un video 1080p con tu portada.</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             }
                         />

@@ -8,4 +8,13 @@ export default defineConfig({
     react(),
     tailwindcss(), // <--- Lo agregamos aquí
   ],
+  server: {
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'credentialless',
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
+  optimizeDeps: {
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+  },
 })

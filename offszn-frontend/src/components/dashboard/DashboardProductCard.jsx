@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    MoreVertical, Edit3, Trash2, Eye, EyeOff, Link,
-    Clock, CheckCircle, Copy, AlertCircle, Music, Disc
+    MoreHorizontal, Pencil, Trash2, Share2,
+    Lock, Globe, Link, Clock, Activity, Music, Disc
 } from 'lucide-react';
 
 export default function DashboardProductCard({
@@ -12,115 +12,123 @@ export default function DashboardProductCard({
     onDelete,
     onUpdateVisibility
 }) {
-    const isDraft = item.isDraft;
-    const visibility = item.visibility;
-    const title = item.title || item.name || 'Sin título';
-    const imageUrl = item.image_url || item.signed_cover_url || '/images/portada-default.png';
+    const [showMenu, setShowMenu] = useState(false);
+    const isDraft = item.status === 'draft' || item.isDraft;
+    const title = item.title || item.name || (isDraft ? 'Sin Título (Borrador)' : 'Sin Título');
+    const imageUrl = item.signed_cover_url || item.image_url || '/images/portada-default.png';
+    const dateObj = new Date(item.created_at || item.updated_at || Date.now());
+    const dateStr = dateObj.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' });
 
-    const getVisibilityColor = () => {
-        if (isDraft) return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
-        switch (visibility) {
-            case 'public': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
-            case 'private': return 'text-gray-400 bg-white/5 border-white/10';
-            case 'unlisted': return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
-            default: return 'text-gray-500 bg-white/5 border-white/10';
-        }
-    };
-
-    const getVisibilityLabel = () => {
-        if (isDraft) return 'Borrador';
-        switch (visibility) {
-            case 'public': return 'Público';
-            case 'private': return 'Privado';
-            case 'unlisted': return 'Oculto';
-            default: return 'Unknown';
+    const getBadge = () => {
+        if (isDraft) return (
+            <div className="absolute bottom-2 left-2 px-2 py-1 bg-[#6c757d] text-white text-[9px] font-bold rounded flex items-center gap-1.5 border border-[#495057] z-10">
+                <Pencil size={8} /> BORRADOR
+            </div>
+        );
+        switch (item.visibility) {
+            case 'private': return (
+                <div className="absolute bottom-2 left-2 px-2 py-1 bg-gray-600 text-white text-[9px] font-bold rounded flex items-center gap-1.5 border border-gray-700 z-10">
+                    <Lock size={9} /> PRIVADO
+                </div>
+            );
+            case 'unlisted': return (
+                <div className="absolute bottom-2 left-2 px-2 py-1 bg-[#222] text-[#888] text-[9px] font-bold rounded flex items-center gap-1.5 border border-[#333] z-10">
+                    <Link size={10} /> NO LISTADO
+                </div>
+            );
+            default: return (
+                <div className="absolute bottom-2 left-2 px-2 py-1 bg-[#10B981] text-black text-[9px] font-bold rounded flex items-center gap-1.5 border border-[#059669] z-10">
+                    <Globe size={9} /> PUBLICADO
+                </div>
+            );
         }
     };
 
     return (
-        <div className={`group relative bg-[#0A0A0A] border ${isSelected ? 'border-violet-500 ring-1 ring-violet-500/20' : 'border-white/5'} rounded-[40px] overflow-hidden transition-all duration-500 hover:border-white/20 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)]`}>
-
-            {/* Selection Checkbox */}
-            <div className={`absolute top-6 left-6 z-20 transition-all duration-500 ${isSelected ? 'opacity-100 scale-110' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}>
-                <button
-                    onClick={() => onToggleSelection(item.id)}
-                    className={`w-8 h-8 rounded-2xl border flex items-center justify-center transition-all backdrop-blur-md ${isSelected ? 'bg-violet-500 border-violet-500 shadow-lg shadow-violet-500/40' : 'bg-black/40 border-white/20 hover:border-white/40'}`}
-                >
-                    {isSelected && <CheckCircle size={16} className="text-white" />}
-                    {!isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
-                </button>
-            </div>
-
-            {/* Thumbnail Box */}
-            <div className="aspect-square relative overflow-hidden m-2 rounded-[32px]">
+        <div
+            className={`group bg-[#0F0F0F] border ${isSelected ? 'border-violet-500 ring-1 ring-violet-500' : 'border-[#222]'} rounded-lg overflow-hidden transition-all duration-200 hover:border-[#333] flex flex-col`}
+            id={`card-${item.id}`}
+        >
+            {/* Cover Area */}
+            <div className="relative aspect-square bg-[#111]">
                 <img
                     src={imageUrl}
                     alt={title}
-                    className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                    loading="lazy"
                 />
 
-                {/* Premium Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+                {/* Badge Overlay */}
+                {getBadge()}
 
-                {/* Quick Actions Hover Box */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-3 backdrop-blur-[4px]">
-                    <ActionButton icon={Edit3} onClick={() => onEdit(item)} label="Editar" variant="light" delay="delay-0" />
-                    <ActionButton icon={Trash2} onClick={() => onDelete(item)} label="Borrar" variant="danger" delay="delay-[50ms]" />
-                    <ActionButton icon={Copy} onClick={() => { }} label="Duplicar" variant="glass" delay="delay-[100ms]" />
-                </div>
-
-                {/* Type Badge (Bottom Left) */}
-                <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-full">
-                    {item.product_type === 'beat' ? <Music size={10} className="text-violet-500" /> : <Disc size={10} className="text-violet-500" />}
-                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">
-                        {item.product_type || 'Item'}
-                    </span>
-                </div>
+                {/* Selection Overlay (Legacy Style) */}
+                <div
+                    onClick={() => onToggleSelection(item.id)}
+                    className="absolute inset-0 cursor-pointer hidden group-hover:block"
+                />
             </div>
 
-            {/* Content Section */}
-            <div className="p-6 space-y-5">
-                <div className="space-y-2">
-                    <div className="flex justify-between items-start gap-4">
-                        <h3 className="text-sm font-black uppercase tracking-tight text-white line-clamp-2 leading-tight flex-1">
-                            {title}
-                        </h3>
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-widest transition-colors ${getVisibilityColor()}`}>
-                            {getVisibilityLabel()}
-                        </div>
-                    </div>
+            {/* Content Area */}
+            <div className="p-3 flex flex-col flex-1">
+                <h4 className="text-white text-[15px] font-bold mb-1.5 line-clamp-2 leading-tight h-[38px] font-display">
+                    {title}
+                </h4>
+
+                <div className="flex items-center gap-3 text-[#666] text-[12px] mb-3">
+                    <span className="flex items-center gap-1">
+                        <Clock size={12} /> {dateStr}
+                    </span>
+                    {item.bpm && (
+                        <span className="flex items-center gap-1">
+                            <Activity size={12} /> {item.bpm} BPM
+                        </span>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    {/* Bento Slot: Tempo/Key */}
-                    <div className="bg-white/[0.02] border border-white/5 p-3 rounded-2xl flex flex-col justify-center">
-                        <span className="text-[8px] font-bold text-gray-600 uppercase tracking-widest mb-1">Ritmo</span>
-                        <div className="flex items-center gap-2 text-[10px] font-black text-gray-400">
-                            {item.bpm || '--'} <span className="text-[8px] text-gray-700">BPM</span>
-                        </div>
-                    </div>
-
-                    {/* Bento Slot: Price */}
-                    <div className="bg-white/[0.02] border border-white/5 p-3 rounded-2xl flex flex-col justify-center">
-                        <span className="text-[8px] font-bold text-gray-600 uppercase tracking-widest mb-1">Precio</span>
-                        <div className="text-[10px] font-black text-violet-400">
-                            ${parseFloat(item.price || 0).toFixed(2)}
-                        </div>
-                    </div>
+                <div className="flex flex-wrap gap-1 mb-4">
+                    <FormatTag label="MP3" />
+                    <FormatTag label="WAV" />
+                    {item.product_type !== 'beat' && <FormatTag label="ZIP" />}
                 </div>
 
-                {/* Footer Metadata */}
-                <div className="flex items-center justify-between pt-2">
-                    <div className="flex -space-x-1">
-                        {(item.tags || []).slice(0, 3).map((tag, i) => (
-                            <div key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[7px] font-black uppercase tracking-tight text-gray-500">
-                                {tag}
-                            </div>
-                        ))}
+                {/* Footer Action Row */}
+                <div className="mt-auto pt-3 border-t border-[#222] flex items-center justify-between">
+                    <div
+                        onClick={() => onToggleSelection(item.id)}
+                        className={`w-4 h-4 rounded-sm border transition-all cursor-pointer flex items-center justify-center ${isSelected ? 'bg-violet-500 border-violet-500' : 'border-[#333] hover:border-[#444]'}`}
+                    >
+                        {isSelected && (
+                            <svg viewBox="0 0 16 16" fill="white" className="w-3 h-3">
+                                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
+                            </svg>
+                        )}
                     </div>
-                    <div className="flex items-center gap-2 text-gray-700">
-                        <Clock size={10} />
-                        <span className="text-[8px] font-bold">{new Date().toLocaleDateString()}</span>
+
+                    <div className="relative">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMenu(!showMenu);
+                            }}
+                            className="p-1.5 text-[#666] hover:text-white transition-colors rounded-full hover:bg-white/5"
+                        >
+                            <MoreHorizontal size={18} />
+                        </button>
+
+                        {showMenu && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowMenu(false)}
+                                />
+                                <div className="absolute bottom-full right-0 mb-2 w-40 bg-[#111] border border-[#333] rounded-lg shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                    <MenuAction icon={Pencil} label="Editar" onClick={() => onEdit(item)} />
+                                    <MenuAction icon={Share2} label="Compartir" onClick={() => { }} />
+                                    <div className="h-px bg-[#222]" />
+                                    <MenuAction icon={Trash2} label="Eliminar" onClick={() => onDelete(item)} variant="danger" />
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -128,20 +136,25 @@ export default function DashboardProductCard({
     );
 }
 
-function ActionButton({ icon: Icon, onClick, label, variant, delay }) {
-    const variants = {
-        light: "bg-white text-black hover:bg-violet-500 hover:text-white",
-        danger: "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20",
-        glass: "bg-white/10 text-white hover:bg-white/20 border border-white/20"
-    };
+function FormatTag({ label }) {
+    return (
+        <span className="px-1.5 py-0.5 bg-[#222] border border-[#333] text-[#aaa] text-[9px] font-bold rounded-sm uppercase tracking-wider">
+            {label}
+        </span>
+    );
+}
 
+function MenuAction({ icon: Icon, label, onClick, variant }) {
     return (
         <button
-            onClick={onClick}
-            className={`p-3.5 rounded-2xl shadow-2xl transition-all transform translate-y-4 group-hover:translate-y-0 duration-500 ${delay} ${variants[variant]}`}
-            title={label}
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium transition-colors ${variant === 'danger' ? 'text-red-500 hover:bg-red-500/10' : 'text-gray-300 hover:bg-white/5 hover:text-white'}`}
         >
-            <Icon size={18} />
+            <Icon size={14} />
+            {label}
         </button>
     );
 }

@@ -196,11 +196,11 @@ const Navbar = () => {
 
                   <div className={clsx("absolute top-full right-0 mt-3 w-80 lg:w-96 bg-[#141414] border border-white/10 rounded-2xl p-4 shadow-2xl transition-all duration-200 origin-top-right", activeDropdown === 'user' ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2")}>
                     {/* Header Card */}
-                    <Link to={`/@${profile?.nickname}`} className="flex items-center justify-between gap-3 bg-[#232323] hover:bg-[#2a2a2a] border border-white/5 rounded-xl p-4 mb-3 transition-colors group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-[#333] flex items-center justify-center text-white font-bold text-lg overflow-hidden flex-shrink-0">
+                    <div className="flex items-center justify-between gap-3 bg-[#232323] border border-white/5 rounded-xl p-4 mb-3 transition-colors group relative">
+                      <Link to={`/@${profile?.nickname}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                        <div className="w-12 h-12 rounded-full bg-[#333] flex items-center justify-center text-white font-bold text-lg overflow-hidden flex-shrink-0 border border-white/5">
                           {profile?.avatar_url ? (
-                            <img src={profile.avatar_url} alt="User" className="w-full h-full object-cover" />
+                            <img src={profile.avatar_url} alt="User" crossOrigin="anonymous" className="w-full h-full object-cover" />
                           ) : (
                             user.email?.charAt(0).toUpperCase()
                           )}
@@ -209,11 +209,11 @@ const Navbar = () => {
                           <h4 className="text-white text-base font-semibold group-hover:text-primary transition-colors">{profile?.nickname || 'Usuario'}</h4>
                           <span className="text-xs text-gray-500 font-bold tracking-wider">0 Créditos</span>
                         </div>
-                      </div>
-                      <Link to="/dashboard/plans" className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors flex-shrink-0">
+                      </Link>
+                      <Link to="/dashboard/plans" className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors flex-shrink-0 relative z-10">
                         <Rocket className="w-3 h-3 text-primary" /> Suscribirse
                       </Link>
-                    </Link>
+                    </div>
 
                     {/* Quick Access Grid */}
                     <div className="grid grid-cols-3 gap-2 mb-3">
@@ -252,7 +252,7 @@ const Navbar = () => {
                   </div>
                 </div>
 
-                <Link to="/dashboard/upload-beat" className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-full text-sm font-bold transition-all ml-2 flex items-center gap-2 group shadow-[0_4px_15px_rgba(114,9,183,0.3)]">
+                <Link to="/dashboard/upload" className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-full text-sm font-bold transition-all ml-2 flex items-center gap-2 group shadow-[0_4px_15px_rgba(114,9,183,0.3)]">
                   <UploadCloud className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" /> Subir
                 </Link>
               </div>
