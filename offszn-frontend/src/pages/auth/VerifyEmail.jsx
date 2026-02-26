@@ -9,9 +9,9 @@ const VerifyEmail = () => {
   const { user } = useAuthStore();
 
   useEffect(() => {
-    // 1. Instant Guard: Si ya está logueado, fuera de aquí
-    if (user) {
-      navigate('/');
+    // Solo redirigir si el correo YA está confirmado
+    if (user?.email_confirmed_at) {
+      navigate('/welcome');
       return;
     }
 
@@ -27,7 +27,7 @@ const VerifyEmail = () => {
 
   return (
     <div className="text-center w-full max-w-sm mx-auto">
-      
+
       {/* Icon */}
       <div className="flex justify-center mb-6">
         <div className="w-16 h-16 rounded-2xl bg-violet-600/10 flex items-center justify-center">

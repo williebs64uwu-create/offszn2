@@ -14,13 +14,19 @@ const authStoreDefinition = (set) => ({
 
   // Verificar sesión al cargar la app
   checkSession: async () => {
+    set({ loading: true });
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         await fetchProfile(session.user, set);
         setAuthCookie(session.access_token);
       } else {
-        set({ user: null, profile: null, loading: false });
+        // Preservar usuario si ya existe uno (ej. registro pendiente)
+        set((state) => ({
+          user: state.user || null,
+          profile: state.profile || null,
+          loading: false
+        }));
       }
     } catch (error) {
       console.error("Error session:", error);
@@ -40,22 +46,24 @@ const authStoreDefinition = (set) => ({
   },
 
   // Registrarse
-  signUp: async (email, password, nickname) => {
+  signUp: async (email, password, options = {}) => {
+    set({ loading: true });
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { nickname }
-      }
+      options
     });
     if (error) throw error;
 
     // Set user state immediately after signup
     if (data.user) {
+      set({ user: data.user });
       await fetchProfile(data.user, set);
       if (data.session?.access_token) {
         setAuthCookie(data.session.access_token);
       }
+    } else {
+      set({ loading: false });
     }
 
     return data;

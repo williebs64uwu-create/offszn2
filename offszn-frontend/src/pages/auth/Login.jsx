@@ -24,8 +24,20 @@ const Login = () => {
     setIsLoading(true);
     setAuthError(null);
     try {
-      await signIn(data.email, data.password);
-      navigate(redirectTo);
+      const { user, session } = await signIn(data.email, data.password);
+
+      // Consultar perfil para ver si completó onboarding
+      const { data: profile } = await supabase
+        .from('users')
+        .select('nickname')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile || !profile.nickname) {
+        navigate('/welcome');
+      } else {
+        navigate(redirectTo);
+      }
     } catch (error) {
       setAuthError("Credenciales incorrectas o error en el servidor.");
     } finally {

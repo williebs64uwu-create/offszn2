@@ -17,7 +17,20 @@ import {
 
 import logo from '../assets/images/LOGO-OFFSZN.png'; // Tu logo
 
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+
 export default function DashboardLayout() {
+  const { user, profile, loading } = useAuthStore();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!loading && user && (!profile || !profile.nickname)) {
+      navigate('/welcome');
+    }
+  }, [user, profile, loading, navigate]);
+
+  if (loading) return null; // O un spinner
   return (
     <div className="min-h-screen bg-black text-white font-inter flex">
       {/* --- FONDO RADIAL GLOW --- */}

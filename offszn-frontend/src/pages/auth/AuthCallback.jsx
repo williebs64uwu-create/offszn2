@@ -22,7 +22,7 @@ const AuthCallback = () => {
 
       // 2. Sincronizar estado global y cookies
       await checkSession();
-      
+
       // 3. Lógica de Redirección Inteligente (V3)
       const redirectParam = searchParams.get('redirect');
       const user = session.user;
@@ -37,16 +37,11 @@ const AuthCallback = () => {
       const hasCompletedOnboarding = profile && profile.nickname;
 
       if (redirectParam === 'carrito') {
-        // Viene del carrito
-        navigate('/carrito'); // Asumiendo ruta carrito
+        navigate('/carrito');
       } else if (!hasCompletedOnboarding) {
-        // Usuario Nuevo o Incompleto -> Onboarding
-        // (Nota: Como no hemos hecho la página Welcome.jsx aún, lo mandaremos a settings o home temporalmente)
-        // navigate('/welcome'); 
-        navigate('/settings'); // Temporal hasta hacer onboarding
+        navigate('/welcome');
       } else {
-        // Usuario Veterano -> Home (o Perfil)
-        navigate('/'); 
+        navigate('/');
       }
     };
 
