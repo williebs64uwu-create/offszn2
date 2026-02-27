@@ -4,6 +4,7 @@ import { usePlayerStore } from '../../store/playerStore';
 import { useCurrencyStore } from '../../store/currencyStore';
 import { useSecureUrl } from '../../hooks/useSecureUrl';
 import { Link } from 'react-router-dom';
+import { useFavorites } from '../../hooks/useFavorites';
 import {
   BiSkipPrevious,
   BiPlay,
@@ -36,6 +37,18 @@ const StickyPlayer = () => {
   const [totalTime, setTotalTime] = useState('--:--');
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
+  const { toggleFavorite } = useFavorites();
+  const [isLiked, setIsLiked] = useState(false);
+
+  useEffect(() => {
+    setIsLiked(!!currentTrack?.is_liked);
+  }, [currentTrack?.id]);
+
+  const handleLike = async (e) => {
+    e.preventDefault();
+    const result = await toggleFavorite(currentTrack.id);
+    if (result !== null) setIsLiked(result);
+  };
 
   // Secure URLs
   const { url: secureCover } = useSecureUrl(currentTrack?.image_url);
@@ -200,6 +213,13 @@ const StickyPlayer = () => {
             className="w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
           />
         </div>
+
+        <button
+          onClick={handleLike}
+          className={`text-xl transition-all hover:scale-110 ${isLiked ? 'text-red-500' : 'text-zinc-400 hover:text-white'}`}
+        >
+          <BiHeart fill={isLiked ? "currentColor" : "none"} />
+        </button>
 
         <button className="bg-violet-600 text-white px-5 py-2.5 rounded-full text-xs font-black flex items-center gap-2 hover:bg-violet-500 transition-all shadow-lg hover:-translate-y-0.5 active:translate-y-0">
           <BiCartAdd size={18} />

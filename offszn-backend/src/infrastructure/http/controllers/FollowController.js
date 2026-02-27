@@ -1,4 +1,5 @@
 import { supabase } from '../../database/connection.js';
+import { createNotification } from './NotificationController.js';
 
 export const followUser = async (req, res) => {
     try {
@@ -30,12 +31,12 @@ export const followUser = async (req, res) => {
                 .single();
 
             const followerName = followerData?.nickname || 'Alguien';
-            await supabase.from('notifications').insert({
-                user_id: targetId,
+            await createNotification({
+                userId: targetId,
+                actorId: followerId,
                 type: 'new_follower',
-                title: '¡Nuevo Seguidor!',
                 message: `<strong>${followerName}</strong> te empezó a seguir.`,
-                read: false
+                link: `/profile/${followerName}`
             });
         } catch (e) {
             console.warn("Follow: Notification failed", e.message);

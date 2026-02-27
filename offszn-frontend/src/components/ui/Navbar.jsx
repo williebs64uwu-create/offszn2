@@ -7,6 +7,7 @@ import SearchBar from './SearchBar';
 import { useAuthStore } from '../../store/authStore';
 import { useCurrencyStore } from '../../store/currencyStore';
 import { useCartStore } from '../../store/cartStore';
+import { useNotificationStore } from '../../store/useNotificationStore';
 import CartPanel from '../cart/CartPanel';
 import logoImg from '../../assets/images/LOGO-OFFSZN.png';
 
@@ -14,10 +15,17 @@ const Navbar = () => {
   const { user, profile, checkSession, signOut } = useAuthStore();
   const { currency, setCurrency } = useCurrencyStore();
   const { items, syncWithSupabase } = useCartStore();
+  const { notifications, unreadCount, fetchNotifications, markAllAsRead, hasFetchedOnce } = useNotificationStore();
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => { checkSession(); }, []);
+
+  useEffect(() => {
+    if (user && !hasFetchedOnce) {
+      fetchNotifications();
+    }
+  }, [user, hasFetchedOnce]);
 
   const toggleDropdown = (name) => setActiveDropdown(activeDropdown === name ? null : name);
   const closeDropdowns = () => setActiveDropdown(null);
@@ -168,17 +176,51 @@ const Navbar = () => {
                   <MessageSquare className="w-5 h-5" />
                 </Link>
                 <div className="relative">
-                  <button onClick={() => toggleDropdown('notifications')} className="w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white relative">
+                  <button onClick={() => {
+                    toggleDropdown('notifications');
+                    if (activeDropdown !== 'notifications' && !hasFetchedOnce) fetchNotifications();
+                  }} className="w-9 h-9 flex items-center justify-center rounded-full bg-[#232323] hover:bg-[#333] transition-colors text-gray-300 hover:text-white relative">
                     <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#141414]"></span>
+                    )}
                   </button>
-                  <div className={clsx("absolute top-full right-0 mt-3 w-72 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl transition-all duration-200 origin-top-right z-[1002]", activeDropdown === 'notifications' ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2")}>
+                  <div className={clsx("absolute top-full right-0 mt-3 w-80 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl transition-all duration-200 origin-top-right z-[1002]", activeDropdown === 'notifications' ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2")}>
                     <div className="p-4 border-b border-white/5 flex justify-between items-center">
                       <h4 className="font-bold text-sm text-white">Notificaciones</h4>
-                      <Link to="/notificaciones" className="text-[10px] text-primary hover:text-primary-light uppercase tracking-widest font-bold">Ver Todo</Link>
+                      <div className="flex gap-3 items-center">
+                        {unreadCount > 0 && (
+                          <button onClick={markAllAsRead} className="text-[10px] text-gray-400 hover:text-white uppercase font-bold transition-colors">Marcar leídas</button>
+                        )}
+                        <Link to="/notificaciones" className="text-[10px] text-primary hover:text-primary-light uppercase tracking-widest font-bold">Ver Todo</Link>
+                      </div>
                     </div>
-                    <div className="p-8 flex flex-col items-center justify-center text-center opacity-50">
-                      <Bell className="w-10 h-10 mb-3 text-gray-500" />
-                      <p className="text-sm text-gray-400">No tienes notificaciones recientes</p>
+                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                      {notifications.length > 0 ? (
+                        notifications.map(notif => (
+                          <Link to={notif.link || '#'} key={notif.id} className={clsx("p-4 border-b border-white/5 flex items-start gap-3 hover:bg-white/5 transition-colors", !notif.read && "bg-white/[0.02]")}>
+                            <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                              {notif.actor?.avatar_url ? (
+                                <img src={notif.actor.avatar_url} className="w-full h-full rounded-full object-cover" alt="Actor" />
+                              ) : (
+                                <Bell className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-300" dangerouslySetInnerHTML={{ __html: notif.message }}></p>
+                              <span className="text-[10px] text-gray-500 font-bold mt-1 block">
+                                {new Date(notif.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {!notif.read && <div className="w-2 h-2 rounded-full bg-primary mt-1 shrink-0"></div>}
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="p-8 flex flex-col items-center justify-center text-center opacity-50">
+                          <Bell className="w-10 h-10 mb-3 text-gray-500" />
+                          <p className="text-sm text-gray-400">No tienes notificaciones recientes</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../api/client';
+import apiClient, { supabase } from '../api/client';
 import { useAuth } from '../store/authStore';
 
 export const useBeatUpload = () => {
@@ -52,7 +52,7 @@ export const useBeatUpload = () => {
 
         // Metadata & Status
         visibility: formState.visibility || 'public',
-        status: isDraft ? 'draft' : 'published',
+        status: isDraft ? 'draft' : 'approved',
         release_date: formState.date || new Date().toISOString(),
 
         // Producer / Owner
@@ -138,6 +138,39 @@ export const useBeatUpload = () => {
         .select();
 
       if (dbError) throw dbError;
+
+      // Notify the owner about successful upload (non-blocking)
+      try {
+        await apiClient.post('/notifications', {
+          targetUserId: user.id,
+          type: 'product_upload',
+          message: `Tu producto '<strong>${formState.title}</strong>' se ha subido exitosamente.`,
+          link: `/dashboard/my-products`
+        });
+      } catch (notifErr) {
+        console.warn("Could not dispatch product_upload notification:", notifErr);
+      }
+
+      // Notify each collaborator that they were added to this product.
+      // collaborators already have { id, nickname, split } from the Step3 user search — no email lookup needed.
+      const collaboratorsList = formState.collaborators || [];
+      console.log('[DEBUG useBeatUpload] formState.collaborators:', JSON.stringify(collaboratorsList));
+      if (collaboratorsList.length > 0) {
+        for (const collab of collaboratorsList) {
+          if (!collab.id || collab.id === user.id) continue;
+          try {
+            await apiClient.post('/notifications', {
+              targetUserId: collab.id,
+              type: 'collab_invite',
+              message: `Has sido añadido como colaborador en '<strong>${formState.title}</strong>'.`,
+              link: `/dashboard/collaborations`
+            });
+            console.log(`[Upload] collab_invite notification sent to ${collab.nickname} (${collab.id})`);
+          } catch (notifErr) {
+            console.warn(`Could not notify collaborator ${collab.nickname}:`, notifErr);
+          }
+        }
+      }
 
       setUploadProgress({ message: 'Publicado con éxito!', progress: 100 });
       return { success: true, data: insertedData };

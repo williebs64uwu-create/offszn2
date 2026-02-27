@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUploadStore } from '../../store/uploadStore';
 import { useAuth } from '../../store/authStore';
 import { useBeatUpload } from '../../hooks/useBeatUpload';
+import apiClient from '../../api/client';
 import { useYouTubeSync } from '../../hooks/useYouTubeSync';
 import { initGoogleAuth, requestAuthToken } from '../../utils/YouTubeUploader';
 import { PublishOverlay, ExitConfirmModal, FirstTimeModal } from '../../components/UploadModals';
@@ -150,6 +151,24 @@ export default function UploadWizard() {
         } catch (err) {
           console.error("YouTube Sync failed, but product was saved:", err);
           alert('Tu beat se publicó con éxito en OFFSZN, pero la sincronización con YouTube falló: ' + err.message);
+        }
+      }
+
+      // --- Notify collaborators (fire from here to guarantee execution) ---
+      const collabs = formState.collaborators || [];
+      console.log('[UploadWizard] Collaborators to notify:', collabs);
+      for (const collab of collabs) {
+        if (!collab.id) continue;
+        try {
+          await apiClient.post('/notifications', {
+            targetUserId: collab.id,
+            type: 'collab_invite',
+            message: `Has sido añadido como colaborador en '<strong>${formState.title}</strong>'.`,
+            link: `/dashboard/collaborations`
+          });
+          console.log(`[UploadWizard] ✅ collab_invite sent to ${collab.nickname} (${collab.id})`);
+        } catch (e) {
+          console.warn(`[UploadWizard] ❌ Could not notify ${collab.nickname}:`, e.message);
         }
       }
 

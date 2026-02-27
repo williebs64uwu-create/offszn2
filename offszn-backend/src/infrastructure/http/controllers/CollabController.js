@@ -1,4 +1,5 @@
 import { supabase } from '../../database/connection.js';
+import { createNotification } from './NotificationController.js';
 
 export const getMyCollaborations = async (req, res) => {
     try {
@@ -58,8 +59,23 @@ export const updateCollaborations = async (req, res) => {
             status: 'pending'
         }));
 
-        const { error } = await supabase.from('collaborations').insert(inserts);
+        const { data: inserted, error } = await supabase.from('collaborations').insert(inserts).select();
         if (error) throw error;
+
+        // Notify invitees (if they exist in the system)
+        const { data: productInfo } = await supabase.from('products').select('name').eq('id', productId).single();
+        for (const s of splits) {
+            const { data: collaboUser } = await supabase.from('users').select('id').eq('email', s.email).maybeSingle();
+            if (collaboUser) {
+                await createNotification({
+                    userId: collaboUser.id,
+                    actorId: userId,
+                    type: 'collab_invite',
+                    message: `Has sido invitado a colaborar en <strong>${productInfo?.name || 'un producto'}</strong>.`,
+                    link: `/dashboard`
+                });
+            }
+        }
 
         res.status(200).json({ message: 'Colaboraciones actualizadas correctamente' });
     } catch (err) {
@@ -85,6 +101,19 @@ export const respondToInvitation = async (req, res) => {
             .single();
 
         if (error) throw error;
+
+        if (data && status === 'accepted') {
+            const { data: collabUser } = await supabase.from('users').select('nickname').eq('id', userId).single();
+            const { data: prod } = await supabase.from('products').select('name').eq('id', data.product_id).single();
+            await createNotification({
+                userId: data.owner_id,
+                actorId: userId,
+                type: 'collab_accept',
+                message: `<strong>${collabUser?.nickname || 'Alguien'}</strong> aceptó tu invitación para colaborar en <strong>${prod?.name || 'un producto'}</strong>.`,
+                link: `/dashboard`
+            });
+        }
+
         res.status(200).json({ message: `Invitación ${status}`, collaboration: data });
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -11,6 +11,7 @@ import WaveSurfer from 'wavesurfer.js';
 import { BiPlay, BiPause, BiCartAdd, BiHeart, BiShareAlt, BiCheck, BiChevronDown, BiPlus } from 'react-icons/bi';
 import { BsPatchCheckFill } from 'react-icons/bs';
 import { ShoppingCart, Download, Share2, Heart, Music2, Clock, CalendarDays, Eye, Tag } from 'lucide-react';
+import { useFavorites } from '../hooks/useFavorites';
 import toast from 'react-hot-toast';
 
 const ProductDetail = () => {
@@ -26,6 +27,7 @@ const ProductDetail = () => {
   const [isInfoOpen, setIsInfoOpen] = useState(true);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const { toggleFavorite } = useFavorites();
 
   const waveformRef = useRef(null);
   const wavesurfer = useRef(null);
@@ -53,6 +55,7 @@ const ProductDetail = () => {
               { id: 'unlimited', name: 'Unlimited Trackout', price: found.price_exclusive || (found.price_basic + 80), features: ['MP3 + WAV + TRACKOUTS', 'Streams Ilimitados', 'Monetización Ilimitada'] }
             ].filter(l => l.price > 0 || found.is_free)
           });
+          setIsLiked(!!found.is_liked);
 
           // Fetch related products (same producer or same type)
           const relatedRes = await apiClient.get(`/products?type=${found.product_type}&limit=6`);
@@ -140,6 +143,17 @@ const ProductDetail = () => {
     toast.success(`Añadido: ${product.name}`);
   };
 
+  const handleLike = async () => {
+    const result = await toggleFavorite(product.id);
+    if (result !== null) {
+      setIsLiked(result);
+      setProduct(prev => ({
+        ...prev,
+        likes_count: result ? (prev.likes_count + 1) : (prev.likes_count - 1)
+      }));
+    }
+  };
+
   const handleShare = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
@@ -173,7 +187,7 @@ const ProductDetail = () => {
           {/* Social Stats Action Row */}
           <div className="flex justify-center gap-12 py-2 w-full border-b border-white/5">
             <button
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={handleLike}
               className={`flex flex-col items-center gap-1 transition-all hover:-translate-y-1 ${isLiked ? 'text-red-500' : 'text-[#888] hover:text-white'}`}
             >
               <Heart size={24} fill={isLiked ? "currentColor" : "none"} />

@@ -459,7 +459,7 @@ export default function EditBeat() {
                                 </div>
                                 <div className="flex justify-between items-center text-[10px]">
                                     <span className="font-bold text-gray-700 uppercase tracking-widest">Estado</span>
-                                    <span className={`font-black uppercase tracking-widest px-4 py-1.5 rounded-full ${product?.status === 'published' ? 'text-emerald-500 bg-emerald-500/10' : 'text-orange-500 bg-orange-500/10'}`}>
+                                    <span className={`font-black uppercase tracking-widest px-4 py-1.5 rounded-full ${['published', 'approved'].includes(product?.status) ? 'text-emerald-500 bg-emerald-500/10' : 'text-orange-500 bg-orange-500/10'}`}>
                                         {product?.status || 'draft'}
                                     </span>
                                 </div>

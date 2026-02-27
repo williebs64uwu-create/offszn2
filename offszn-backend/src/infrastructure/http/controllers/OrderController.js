@@ -2,6 +2,7 @@ import { supabase } from '../../database/connection.js';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { MERCADOPAGO_ACCESS_TOKEN } from '../../../shared/config/config.js';
 import fetch from 'node-fetch'; // Ensure node-fetch is available or use global fetch if in Node 18+
+import { createNotification } from './NotificationController.js';
 
 const client = MERCADOPAGO_ACCESS_TOKEN ? new MercadoPagoConfig({ accessToken: MERCADOPAGO_ACCESS_TOKEN }) : null;
 const TASA_CAMBIO_USD_COP = 4200;
@@ -182,11 +183,11 @@ const saveOrderToDB = async (paymentData) => {
             const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
             if (itemsError) throw itemsError;
 
-            // 3. Increment Sales Counts
+            // 3. Increment Sales Counts and emit notifications
             for (const item of orderItems) {
                 const { data: prod } = await supabase
                     .from('products')
-                    .select('sales_count')
+                    .select('sales_count, producer_id, name')
                     .eq('id', item.product_id)
                     .single();
 
@@ -195,8 +196,25 @@ const saveOrderToDB = async (paymentData) => {
                         .from('products')
                         .update({ sales_count: (prod.sales_count || 0) + 1 })
                         .eq('id', item.product_id);
+
+                    // Notify producer
+                    await createNotification({
+                        userId: prod.producer_id,
+                        actorId: userId,
+                        type: 'sale',
+                        message: `¡Has vendido <strong>${prod.name}</strong> por COP ${item.price_at_purchase}!`,
+                        link: `/dashboard/orders`
+                    });
                 }
             }
+
+            // Notify buyer
+            await createNotification({
+                userId: userId,
+                type: 'purchase_complete',
+                message: `Tu compra se ha procesado con éxito. ¡Ve a Mis Productos para descargar!`,
+                link: `/dashboard/my-products`
+            });
         }
 
         console.log(`🎯 [DB SUCCESS] Order ${order.id} persisted for user ${userId}`);

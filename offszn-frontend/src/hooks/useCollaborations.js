@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '../api/client';
+import apiClient, { supabase } from '../api/client';
 import { useAuth } from '../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -71,12 +71,33 @@ export const useCollaborations = () => {
 
     const respondToInvite = async (inviteId, status) => {
         try {
+            // Find the invite details to know who to notify
+            const { data: inviteInfo } = await supabase
+                .from('collab_invitations')
+                .select('inviter_id, product_id, products(name)')
+                .eq('id', inviteId)
+                .single();
+
             const { error } = await supabase
                 .from('collab_invitations')
                 .update({ status })
                 .eq('id', inviteId);
 
             if (error) throw error;
+
+            // Dispatch notification if accepted
+            if (status === 'accepted' && inviteInfo) {
+                try {
+                    await apiClient.post('/notifications', {
+                        targetUserId: inviteInfo.inviter_id,
+                        type: 'collab_accept',
+                        message: `<strong>${user.user_metadata?.nickname || 'Alguien'}</strong> aceptó tu invitación para colaborar en <strong>${inviteInfo.products?.name || 'un producto'}</strong>.`,
+                        link: `/dashboard/collaborations`
+                    });
+                } catch (notifErr) {
+                    console.warn("Could not dispatch collab_accept notification:", notifErr);
+                }
+            }
 
             toast.success(status === 'accepted' ? "Colaboración aceptada" : "Invitación rechazada");
             fetchCollaborations();
@@ -88,6 +109,7 @@ export const useCollaborations = () => {
 
     const saveSplits = async (productId, splits) => {
         if (!user) return;
+        console.log('[DEBUG] saveSplits called. productId:', productId, 'splits:', splits);
 
         try {
             // 1. Delete existing for this product by THIS owner
@@ -97,16 +119,12 @@ export const useCollaborations = () => {
                 .eq('product_id', productId)
                 .eq('inviter_id', user.id);
 
-            if (deleteError) throw deleteError;
+            if (deleteError) {
+                console.error('[DEBUG] deleteError:', deleteError);
+                throw deleteError;
+            }
 
-            // 2. Insert new splits (excluding owner/self if splits table only tracks GUESTS)
-            // Based on old code check, it filters rows by email and inserts them.
-            // Note: split_percentage in DB vs split_percent in some docs. Old code used split_percentage?
-            // Let's use 'royalty_split' or 'split_percentage'. 
-            // Looking at old code line 1463: 'royalty_split: u.percent'
-            // Looking at user docs: 'split_percentage: u.percent'
-            // I'll check my view_file output again. Line 1463: royalty_split: u.percent
-
+            // 2. Build invitations to insert
             const toInsert = splits
                 .filter(s => !s.isOwner && s.email)
                 .map(s => ({
@@ -117,12 +135,35 @@ export const useCollaborations = () => {
                     status: 'pending'
                 }));
 
+            console.log('[DEBUG] toInsert array:', toInsert);
+
             if (toInsert.length > 0) {
                 const { error: insertError } = await supabase
                     .from('collab_invitations')
                     .insert(toInsert);
 
-                if (insertError) throw insertError;
+                if (insertError) {
+                    console.error('[DEBUG] insertError:', insertError);
+                    throw insertError;
+                }
+
+                console.log('[DEBUG] DB insert success. Now calling /notifications/collab-invite...');
+
+                // Ask the backend to resolve emails -> IDs and send notifications.
+                try {
+                    const { data: productInfo } = await supabase.from('products').select('name').eq('id', productId).single();
+                    const emails = toInsert.map(s => s.collaborator_email);
+                    console.log('[DEBUG] Sending to /notifications/collab-invite with emails:', emails, 'productName:', productInfo?.name);
+                    const notifResult = await apiClient.post('/notifications/collab-invite', {
+                        collaboratorEmails: emails,
+                        productName: productInfo?.name || 'un producto'
+                    });
+                    console.log('[DEBUG] /notifications/collab-invite response:', notifResult.data);
+                } catch (notifErr) {
+                    console.error('[DEBUG] collab_invite notification ERROR:', notifErr);
+                }
+            } else {
+                console.warn('[DEBUG] toInsert is empty - no collaborators to notify.');
             }
 
             toast.success("Reparto de royalties actualizado");

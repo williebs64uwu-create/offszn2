@@ -10,6 +10,7 @@ import { BiPlay, BiPause, BiErrorCircle, BiMusic, BiCheckCircle } from 'react-ic
 import { FaInstagram, FaYoutube, FaSpotify, FaDiscord, FaTwitter, FaTiktok } from 'react-icons/fa';
 import { CheckCircle2, Heart, Share2, Globe, Search, Download, MessageSquare, UserPlus, Music2, Play, ChevronLeft, ChevronRight, ShoppingCart, Info, MoreHorizontal, ChevronDown, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useFavorites } from '../../hooks/useFavorites';
 import ProfilePersonalizerModal from '../../components/profile/ProfilePersonalizerModal';
 import SecureImage from '../../components/ui/SecureImage';
 import ProducerHoverCard from '../../components/profile/ProducerHoverCard';
@@ -30,7 +31,7 @@ export default function Profile() {
 
   const { formatPrice } = useCurrencyStore();
   const { playTrack, currentTrack, isPlaying, setPlaylist } = usePlayerStore();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, profile: currentUserProfile } = useAuth();
   const { startNewChat } = useChatStore();
   const isDynamicTheme = profile?.socials?.dynamic_theme === true || profile?.socials?.dynamic_theme === "true";
 
@@ -273,7 +274,7 @@ export default function Profile() {
           </div>
 
           <div className="flex items-center gap-3 pb-8">
-            {currentUser && currentUser.nickname === profile?.nickname ? (
+            {currentUserProfile && currentUserProfile.nickname === profile?.nickname ? (
               <>
                 <ActionButton label="Personalizar" onClick={() => setIsPersonalizerOpen(true)} />
                 <ActionButton label="Ajustes" onClick={() => navigate('/dashboard/settings')} />
@@ -494,12 +495,20 @@ function TrendingCard({ product, profile, isPlaying, onPlay, onArtistHover, onAr
 
 function TrackListRow({ product, producerName, isCurrent, isPlaying, onPlay, formatPrice, onArtistHover, onArtistLeave }) {
   const { addItem } = useCartStore();
+  const { toggleFavorite } = useFavorites();
+  const [isLiked, setIsLiked] = useState(!!product.is_liked);
   const navigate = useNavigate();
   const isFree = product.is_free;
   const priceBasic = product.price_basic || 0;
   const handleAddToCart = (e) => { e.stopPropagation(); addItem(product); toast.success(`Añadido: ${product.name}`); };
   const goToProduct = (e) => { e.stopPropagation(); navigate(`/${product.product_type || 'beat'}/${product.public_slug || product.id}`); };
   const handleArtistEnter = (e) => { onArtistHover(producerName, e.currentTarget.getBoundingClientRect()); };
+
+  const handleLike = async (e) => {
+    e.stopPropagation();
+    const result = await toggleFavorite(product.id);
+    if (result !== null) setIsLiked(result);
+  };
 
   return (
     <div onClick={onPlay} className={`group grid grid-cols-[60px_330px_2fr_210px_80px_110px] items-center gap-4 py-[8px] px-[8px] min-h-[73px] border-b border-white/5 hover:bg-white/5 transition-all cursor-pointer overflow-hidden backdrop-blur-sm ${isCurrent ? 'bg-white/5' : ''}`}>
@@ -534,7 +543,12 @@ function TrackListRow({ product, producerName, isCurrent, isPlaying, onPlay, for
         <button onClick={handleAddToCart} className={`${isFree ? 'text-emerald-400' : 'hover:text-violet-400 transition-colors'}`}>{isFree ? 'FREE' : formatPrice(priceBasic)}</button>
       </div>
       <div className="flex items-center justify-end gap-3 pr-2">
-        <button onClick={(e) => { e.stopPropagation(); }} className="w-8 h-8 rounded-full flex items-center justify-center text-[#555] hover:text-white hover:bg-white/10 transition-all"><Heart size={18} /></button>
+        <button
+          onClick={handleLike}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isLiked ? 'text-red-500 bg-red-500/10' : 'text-[#555] hover:text-white hover:bg-white/10'}`}
+        >
+          <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+        </button>
         <button onClick={(e) => { e.stopPropagation(); }} className="w-8 h-8 rounded-full flex items-center justify-center text-[#555] hover:text-white hover:bg-white/10 transition-all"><Download size={18} /></button>
         <button onClick={(e) => { e.stopPropagation(); }} className="w-8 h-8 rounded-full flex items-center justify-center text-[#555] hover:text-white hover:bg-white/10 transition-all"><Share2 size={18} /></button>
       </div>

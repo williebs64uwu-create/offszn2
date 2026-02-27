@@ -6,8 +6,8 @@ import { optionalAuthMiddleware } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.get('/products', getAllProducts);
-router.get('/products/:id', getProductById);
+router.get('/products', optionalAuthMiddleware, getAllProducts);
+router.get('/products/:id', optionalAuthMiddleware, getProductById);
 router.post('/products/:id/play', incrementPlayCount);
 
 // User/Profile routes

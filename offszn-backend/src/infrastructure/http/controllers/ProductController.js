@@ -1,4 +1,5 @@
 import { supabase } from '../../database/connection.js';
+import { createNotification } from './NotificationController.js';
 
 export const getAllProducts = async (req, res) => {
     try {
@@ -25,7 +26,7 @@ export const getAllProducts = async (req, res) => {
             const { data: user, error: userError } = await supabase
                 .from('users')
                 .select('id')
-                .eq('nickname', nickname)
+                .ilike('nickname', nickname)
                 .single();
 
             if (userError || !user) {
@@ -38,8 +39,8 @@ export const getAllProducts = async (req, res) => {
             query = query.eq('product_type', type);
         }
 
-        // En producción, solo mostrar publicados/aprobados
-        query = query.eq('status', 'approved');
+        // En producción, mostrar publicados o aprobados
+        query = query.in('status', ['approved', 'published']);
 
         // Ordenamiento
         if (sort === 'newest') {
@@ -53,7 +54,29 @@ export const getAllProducts = async (req, res) => {
         const { data, error } = await query;
         if (error) throw error;
 
-        res.status(200).json(data);
+        // Add is_liked status if user is logged in
+        let productsWithLikes = data;
+        const userId = req.user?.userId;
+
+        if (userId && data.length > 0) {
+            const productIds = data.map(p => p.id);
+            const { data: userLikes } = await supabase
+                .from('likes')
+                .select('target_id')
+                .eq('user_id', userId)
+                .eq('target_type', 'product')
+                .in('target_id', productIds);
+
+            if (userLikes) {
+                const likedIds = new Set(userLikes.map(l => l.target_id));
+                productsWithLikes = data.map(p => ({
+                    ...p,
+                    is_liked: likedIds.has(p.id)
+                }));
+            }
+        }
+
+        res.status(200).json(productsWithLikes);
     } catch (err) {
         console.error("❌ ERROR EN GET_ALL_PRODUCTS:", err); // <-- AGREGA ESTO
         res.status(500).json({ error: err.message });
@@ -91,7 +114,22 @@ export const getProductById = async (req, res) => {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
 
-        res.status(200).json(data);
+        // Add is_liked status if user is logged in
+        let isLiked = false;
+        const userId = req.user?.userId;
+
+        if (userId) {
+            const { data: like } = await supabase
+                .from('likes')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('target_id', data.id)
+                .eq('target_type', 'product')
+                .maybeSingle();
+            isLiked = !!like;
+        }
+
+        res.status(200).json({ ...data, is_liked: isLiked });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -148,8 +186,14 @@ export const createProduct = async (req, res) => {
 
         if (insertError) throw insertError;
 
-        // Optionally update with real ID if needed for "self-healing" slugs, 
-        // but the random suffix is fine and standard.
+        // Emit notification for successful upload
+        await createNotification({
+            userId,
+            actorId: userId,
+            type: 'product_upload',
+            message: `Tu producto '${title}' se ha subido exitosamente.`,
+            link: `/dashboard/my-products` // Or product link
+        });
 
         res.status(201).json({ message: 'Producto publicado!', product: newProduct });
     } catch (err) {

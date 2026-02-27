@@ -20,6 +20,7 @@ import storageRoutes from './infrastructure/http/routes/storage.routes.js';
 import cloudinaryRoutes from './infrastructure/http/routes/cloudinary.routes.js';
 import reelsRoutes from './infrastructure/http/routes/reels.routes.js';
 import chatbotRoutes from './infrastructure/http/routes/chatbot.routes.js';
+import notificationRoutes from './infrastructure/http/routes/notification.routes.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -125,6 +126,7 @@ app.use('/api/storage', storageRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/reels', reelsRoutes);
 app.use('/api', chatbotRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 checkConnection();
 

@@ -1,4 +1,5 @@
 import { supabase } from '../../database/connection.js';
+import { createNotification } from './NotificationController.js';
 
 export const getConversations = async (req, res) => {
     try {
@@ -96,6 +97,24 @@ export const sendMessage = async (req, res) => {
                 updated_at: new Date()
             })
             .eq('id', conversationId);
+
+        // Fetch conversation to find target user
+        const { data: conv } = await supabase.from('conversations').select('participant_1, participant_2').eq('id', conversationId).single();
+        if (conv) {
+            const targetUserId = conv.participant_1 === userId ? conv.participant_2 : conv.participant_1;
+
+            // Get sender name for a better notification
+            const { data: sender } = await supabase.from('users').select('nickname').eq('id', userId).single();
+            const senderName = sender?.nickname || 'Alguien';
+
+            await createNotification({
+                userId: targetUserId,
+                actorId: userId,
+                type: 'new_message',
+                message: `Tienes un nuevo mensaje de <strong>${senderName}</strong>.`,
+                link: `/messages/${conversationId}`
+            });
+        }
 
         res.status(201).json(msg);
     } catch (err) {

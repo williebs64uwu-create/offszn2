@@ -1,4 +1,5 @@
 import { supabase } from '../../database/connection.js';
+import { createNotification } from './NotificationController.js';
 
 export const getMyFavorites = async (req, res) => {
     try {
@@ -80,13 +81,12 @@ export const toggleProductLike = async (req, res) => {
                         .eq('id', userId)
                         .single();
 
-                    await supabase.from('notifications').insert({
-                        user_id: product.producer_id,
+                    await createNotification({
+                        userId: product.producer_id,
+                        actorId: userId,
                         type: 'product_like',
-                        title: '¡Nuevo Me Gusta!',
                         message: `A <strong>${liker?.nickname || 'Alguien'}</strong> le gustó tu producto <strong>${product.name}</strong>.`,
-                        data: { product_id: productId, liker_id: userId },
-                        read: false
+                        link: `/dashboard/my-products`
                     });
                 }
             } catch (notifErr) {

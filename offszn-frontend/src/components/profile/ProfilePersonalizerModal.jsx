@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Loader2, Check } from 'lucide-react';
+import { X, Upload, Loader2, Check, Globe } from 'lucide-react';
 import { BiPalette, BiChevronRight, BiImage, BiCheckCircle } from 'react-icons/bi';
 import { BsArrowLeft, BsFiletypeGif, BsPersonCircle } from 'react-icons/bs';
 import { RiLayoutBottom2Fill } from "react-icons/ri";
+import { FaSpotify, FaInstagram, FaYoutube, FaTiktok } from 'react-icons/fa';
 import { supabase } from '../../api/client';
 import toast from 'react-hot-toast';
 import Cropper from 'react-easy-crop';
