@@ -1,0 +1,589 @@
+/* ProductDetail.css - Legacy OFFSZN Premium Style (PIXEL PERFECT) */
+
+.product-detail-page {
+    background-color: #050505;
+    color: #FFFFFF;
+    min-height: 80vh;
+    padding-top: 40px;
+    font-family: 'Inter', sans-serif;
+    max-width: 1400px;
+    margin: 0 auto;
+
+    /* 👇 AQUÍ ESTÁ LA MAGIA DEL ZOOM 👇 */
+    zoom: 0.97;
+    -moz-transform: scale(0.9);
+    /* Soporte para versiones antiguas de Firefox */
+    -moz-transform-origin: top center;
+}
+
+.product-split-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px 80px;
+    align-items: start;
+}
+
+/* Sidebar */
+.product-sidebar {
+    height: fit-content;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    width: 100%;
+}
+
+.product-cover-art {
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    background: #111;
+    position: relative;
+}
+
+.product-cover-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.product-cover-play-btn {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    cursor: pointer;
+}
+
+.product-cover-art:hover .product-cover-play-btn {
+    opacity: 1;
+}
+
+.product-cover-play-btn i {
+    font-size: 6rem;
+    /* Enlarge to match user request */
+    color: white;
+    filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+}
+
+.product-cover-badge {
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Social Actions Wrapper (Sidebar Centered) */
+.social-actions-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.action-btn-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn-icon:hover {
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.action-btn-icon.liked {
+    color: #ff4b4b;
+}
+
+.action-btn-icon i {
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #444;
+    /* Dimmed count per legacy */
+}
+
+/* Info List */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-label {
+    color: #666;
+    font-weight: 700;
+}
+
+.info-val {
+    font-weight: 800;
+    color: #bbb;
+}
+
+/* License Modules v2 */
+.license-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.license-card-v2 {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.license-card-v2:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.license-card-v2.selected {
+    border-color: #8b5cf6;
+    /* Accent Purple */
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.lic-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lic-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: capitalize;
+}
+
+.lic-details-trigger {
+    color: #444;
+    font-size: 1.1rem;
+    transition: color 0.2s;
+}
+
+.lic-details-trigger:hover {
+    color: #fff;
+}
+
+.lic-card-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 10px;
+}
+
+.lic-files-preview {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: 600;
+}
+
+.lic-price-v2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+/* Main Content Area */
+.product-main-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.product-header-wrapper {
+    margin-bottom: 25px;
+}
+
+.product-header-wrapper h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 10px;
+    word-break: break-word;
+}
+
+.producer-info {
+    color: #888;
+    margin-top: 5px;
+}
+
+.section-headline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #222;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+    min-width: 0;
+    gap: 15px;
+    font-weight: 600;
+}
+
+/* Tabs System */
+.product-tabs-container {
+    margin-top: 40px;
+    border-top: 1px solid #222;
+}
+
+.product-tabs-nav {
+    display: flex;
+    gap: 40px;
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 12px 0;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.tab-btn.active {
+    color: #fff;
+}
+
+.tab-indicator {
+    position: absolute;
+    bottom: -1px;
+    height: 2px;
+    background: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Negotiation Form */
+.floating-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.floating-group input {
+    width: 100%;
+    height: 54px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 18px 15px 6px;
+    color: #fff;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.floating-group label {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #444;
+    font-size: 0.85rem;
+    font-weight: 700;
+    pointer-events: none;
+    transition: all 0.2s;
+}
+
+.floating-group input:focus+label,
+.floating-group input:not(:placeholder-shown)+label {
+    top: 14px;
+    font-size: 0.65rem;
+    color: #8b5cf6;
+}
+
+.floating-group.has-prefix input {
+    padding-left: 30px;
+}
+
+.floating-group .prefix {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #fff;
+    font-weight: 700;
+    z-index: 1;
+}
+
+/* Promos */
+.promo-card-v2 {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+}
+
+.coupon-box-minimal {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0;
+}
+
+/* Responsiveness */
+@media (max-width: 992px) {
+    .product-split-layout {
+        grid-template-columns: 1fr;
+        padding: 0 20px 40px;
+    }
+
+    .product-sidebar {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .product-cover-art {
+        width: 120px;
+        height: 120px;
+    }
+
+    .social-actions-wrapper {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+}
+
+/* Related Products Section (Legacy Pixel Perfect) */
+.related-products-section {
+    margin-top: 60px;
+    padding: 0 40px 80px;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.related-products-section h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+}
+
+.section-header {
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.nav-arrows {
+    display: flex;
+    gap: 12px;
+}
+
+.nav-arrow-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nav-arrow-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.nav-arrow-btn:active {
+    transform: scale(0.9);
+}
+
+.trending-grid {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    scrollbar-width: none;
+}
+
+.trending-grid::-webkit-scrollbar {
+    display: none;
+}
+
+.trending-card {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 0 0 calc(20% - 16px);
+    min-width: calc(20% - 16px);
+    scroll-snap-align: start;
+    transition: all 0.2s;
+}
+
+.t-card-cover {
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    background: #0a0a0a;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease;
+}
+
+.trending-card:hover .t-card-cover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.t-card-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.t-overlay-badge {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    z-index: 2;
+}
+
+.t-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 50px;
+    height: 50px;
+    background: #ffffff;
+    color: #000000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 3;
+    pointer-events: auto;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border: none;
+    cursor: pointer;
+}
+
+.t-play-btn i {
+    margin-left: 3px;
+}
+
+.trending-card:hover .t-play-btn {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.t-play-btn:hover {
+    background: #f0f0f0;
+    transform: translate(-50%, -50%) scale(1.1) !important;
+}
+
+.t-card-info {
+    width: 100%;
+    overflow: hidden;
+}
+
+.t-card-info h4 {
+    color: #fff;
+    font-size: 0.9rem;
+    margin: 0 0 4px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.t-card-info p {
+    color: #666;
+    font-size: 0.75rem;
+    margin: 2px 0 0;
+}
+
+.t-meta-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 5px;
+    font-size: 0.75rem;
+    color: #555;
+    font-weight: 600;
+}
+
+@media (max-width: 992px) {
+    .trending-grid {
+        gap: 15px;
+    }
+
+    .trending-card {
+        flex: 0 0 calc(50% - 7.5px);
+        min-width: calc(50% - 7.5px);
+    }
+}

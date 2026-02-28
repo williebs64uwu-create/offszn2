@@ -6,13 +6,17 @@ import { usePlayerStore } from '../store/playerStore';
 import { useCartStore } from '../store/cartStore';
 import { useCurrencyStore } from '../store/currencyStore';
 import { useAuth } from '../store/authStore';
+import { useFavorites } from '../hooks/useFavorites';
 import { useChatStore } from '../store/useChatStore';
 import WaveSurfer from 'wavesurfer.js';
-import { BiPlay, BiPause, BiCartAdd, BiHeart, BiShareAlt, BiCheck, BiChevronDown, BiPlus } from 'react-icons/bi';
+import ShareModal from '../components/modals/ShareModal';
+import ExclusivityModal from '../components/modals/ExclusivityModal';
+import ComparisonModal from '../components/modals/ComparisonModal';
+import ProducerHoverCard from '../components/profile/ProducerHoverCard';
+import { Music2, ShoppingCart } from 'lucide-react';
+import { BiPlay, BiPause, BiCartAdd, BiHeart, BiShareAlt, BiCheck, BiChevronDown, BiPlus, BiChevronLeft, BiChevronRight } from 'react-icons/bi';
 import { BsPatchCheckFill } from 'react-icons/bs';
-import { ShoppingCart, Download, Share2, Heart, Music2, Clock, CalendarDays, Eye, Tag } from 'lucide-react';
-import { useFavorites } from '../hooks/useFavorites';
-import toast from 'react-hot-toast';
+import './ProductDetail.css';
 
 const ProductDetail = () => {
   const { id, slug } = useParams();
@@ -21,17 +25,24 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedLicense, setSelectedLicense] = useState('basic');
-  const [waveLoading, setWaveLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [isDescOpen, setIsDescOpen] = useState(true);
   const [isInfoOpen, setIsInfoOpen] = useState(true);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isExclusivityModalOpen, setIsExclusivityModalOpen] = useState(false);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
   const { toggleFavorite } = useFavorites();
+  const tabsNavRef = useRef(null);
+  const tabIndicatorRef = useRef(null);
+  const trendingGridRef = useRef(null);
 
-  const waveformRef = useRef(null);
-  const wavesurfer = useRef(null);
-
+  // Hover Card State
+  const [hoveredProducer, setHoveredProducer] = useState(null);
+  const [hoverRect, setHoverRect] = useState(null);
+  const hoverTimeoutRef = useRef(null);
   // Stores
   const { addItem } = useCartStore();
   const { formatPrice } = useCurrencyStore();
@@ -53,13 +64,18 @@ const ProductDetail = () => {
               { id: 'basic', name: 'Basic Lease', price: found.price_basic, features: ['MP3 de Alta Calidad', '5,000 Streams', 'Sin Monetización'] },
               { id: 'premium', name: 'Premium Lease', price: found.price_premium || (found.price_basic + 20), features: ['MP3 + WAV', '50,000 Streams', 'Monetización Limitada'] },
               { id: 'unlimited', name: 'Unlimited Trackout', price: found.price_exclusive || (found.price_basic + 80), features: ['MP3 + WAV + TRACKOUTS', 'Streams Ilimitados', 'Monetización Ilimitada'] }
-            ].filter(l => l.price > 0 || found.is_free)
+            ].filter(l => l.price > 0 || found.is_free),
+            likes_count: (Number(found.likes_count || 0) === 0 && found.is_liked) ? 1 : Number(found.likes_count || 0)
           });
           setIsLiked(!!found.is_liked);
 
           // Fetch related products (same producer or same type)
-          const relatedRes = await apiClient.get(`/products?type=${found.product_type}&limit=6`);
-          setRelatedProducts(relatedRes.data.filter(p => p.id !== found.id));
+          apiClient.get(`/products?limit=10&product_type=${found.product_type}`)
+            .then(res => {
+              // Priority: Same category + producer first
+              const filtered = res.data.filter(p => p.id !== found.id);
+              setRelatedProducts(filtered.slice(0, 6));
+            });
         }
       } catch (error) {
         console.error('Error fetching product:', error);
@@ -71,47 +87,16 @@ const ProductDetail = () => {
 
     fetchProduct();
     window.scrollTo(0, 0);
-
-    return () => {
-      if (wavesurfer.current) {
-        wavesurfer.current.destroy();
-      }
-    };
   }, [identifier]);
 
   useEffect(() => {
-    if (!secureAudioUrl || !waveformRef.current) return;
-
-    if (wavesurfer.current) {
-      wavesurfer.current.destroy();
+    // Update tab indicator position
+    const activeTabEl = tabsNavRef.current?.querySelector('.tab-btn.active');
+    if (activeTabEl && tabIndicatorRef.current) {
+      tabIndicatorRef.current.style.width = `${activeTabEl.offsetWidth}px`;
+      tabIndicatorRef.current.style.left = `${activeTabEl.offsetLeft}px`;
     }
-
-    wavesurfer.current = WaveSurfer.create({
-      container: waveformRef.current,
-      waveColor: 'rgba(255, 255, 255, 0.1)',
-      progressColor: '#8b5cf6',
-      cursorColor: 'transparent',
-      barWidth: 2,
-      barGap: 3,
-      height: 60,
-      barRadius: 2,
-      normalize: true,
-      interact: true,
-      backend: 'MediaElement'
-    });
-
-    wavesurfer.current.on('ready', () => {
-      setWaveLoading(false);
-    });
-
-    wavesurfer.current.load(secureAudioUrl);
-
-    return () => {
-      if (wavesurfer.current) {
-        wavesurfer.current.destroy();
-      }
-    };
-  }, [secureAudioUrl, product]);
+  }, [activeTab]);
 
   if (loading) return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -147,297 +132,404 @@ const ProductDetail = () => {
     const result = await toggleFavorite(product.id);
     if (result !== null) {
       setIsLiked(result);
+      // Sync with local state to show updated count immediately
       setProduct(prev => ({
         ...prev,
-        likes_count: result ? (prev.likes_count + 1) : (prev.likes_count - 1)
+        likes_count: result ? (Number(prev.likes_count || 0) + 1) : Math.max(0, Number(prev.likes_count || 0) - 1)
       }));
     }
   };
 
+  const scrollRelated = (direction) => {
+    if (!trendingGridRef.current) return;
+    const scrollAmount = direction === 'left' ? -400 : 400;
+    trendingGridRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  };
+
+  const handleProducerEnter = (e, nickname, isVerified) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoverRect(rect);
+    setHoveredProducer({ nickname, isVerified });
+  };
+
+  const handleProducerLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredProducer(null);
+      setHoverRect(null);
+    }, 300);
+  };
+
   const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success("Enlace copiado al portapapeles");
+    setIsShareModalOpen(true);
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pt-[110px] pb-32 font-sans selection:bg-violet-500/30">
-      <div className="max-w-[1240px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-[60px] items-start">
+    <div className="product-detail-page selection:bg-violet-500/30">
+      <div className="product-split-layout">
 
         {/* --- LEFT COL: SIDEBAR --- */}
-        <aside className="product-sidebar flex flex-col gap-6">
+        <aside className="product-sidebar">
           {/* Cover Art */}
-          <div className="product-cover-art relative w-full aspect-square rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] bg-[#111] group">
+          <div className="product-cover-art" style={{ position: 'relative' }}>
             <img
-              src={product.image_url || 'https://via.placeholder.com/400x400/111111/333333?text=Cover'}
+              src={product.image_url || '/images/portada-default.png'}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              id="product-main-art"
             />
             {/* Play Overlay */}
-            <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-              <button
-                onClick={handlePlay}
-                className="w-20 h-20 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-110 active:scale-95 transition-all"
-              >
-                {isCurrent && isPlaying ? <BiPause size={48} /> : <BiPlay size={48} className="ml-1.5" />}
-              </button>
+            <div className="product-cover-play-btn" onClick={handlePlay}>
+              {isCurrent && isPlaying ? <BiPause /> : <BiPlay />}
+            </div>
+            {/* Plays Badge */}
+            <div className="product-cover-badge desktop-only-flex">
+              <Music2 size={14} /> {product.plays_count || 0}
             </div>
           </div>
 
-          {/* Social Stats Action Row */}
-          <div className="flex justify-center gap-12 py-2 w-full border-b border-white/5">
+          {/* Sidebar Actions Area (PC ONLY) */}
+          <div className="social-actions-wrapper">
             <button
               onClick={handleLike}
-              className={`flex flex-col items-center gap-1 transition-all hover:-translate-y-1 ${isLiked ? 'text-red-500' : 'text-[#888] hover:text-white'}`}
+              className={`action-btn-icon ${isLiked ? 'liked' : ''}`}
             >
-              <Heart size={24} fill={isLiked ? "currentColor" : "none"} />
-              <span className="text-[0.75rem] font-bold text-[#666]">{product.likes_count || 0}</span>
+              <i className={`bi ${isLiked ? 'bi-heart-fill' : 'bi-heart'}`}></i>
+              <span className="stat-value">{product.likes_count || 0}</span>
             </button>
             <button
               onClick={handleShare}
-              className="flex flex-col items-center gap-1 text-[#888] hover:text-white transition-all hover:-translate-y-1"
+              className="action-btn-icon"
             >
-              <Share2 size={24} />
-              <span className="text-[0.75rem] font-bold text-[#666]">Compartir</span>
+              <i className="bi bi-share"></i>
+              <span className="stat-value">SHARE</span>
             </button>
-            <button className="flex flex-col items-center gap-1 text-[#888] hover:text-white transition-all hover:-translate-y-1">
-              <Eye size={24} />
-              <span className="text-[0.75rem] font-bold text-[#666]">{product.plays_count || 0}</span>
-            </button>
-          </div>
-
-          {/* Productor Info Summary (Compact) */}
-          <div className="bg-[#111] border border-white/5 p-5 rounded-xl flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#222] shrink-0">
-              <img src={product.users?.avatar_url || `https://ui-avatars.com/api/?name=${product.users?.nickname}&background=111&color=fff`} className="w-full h-full object-cover" alt="" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[10px] text-[#555] font-black uppercase tracking-widest leading-none mb-1">Creador</span>
-              <Link to={`/@${product.users?.nickname}`} className="text-white hover:text-violet-400 font-bold text-[0.95rem] truncate flex items-center gap-1 transition-colors">
-                {product.users?.nickname}
-                {product.users?.is_verified && <BsPatchCheckFill size={13} className="text-violet-500" />}
-              </Link>
-            </div>
-          </div>
-
-          {/* Information Section (Accordion style as requested) */}
-          <div className="flex flex-col gap-1">
             <button
-              onClick={() => setIsInfoOpen(!isInfoOpen)}
-              className="flex items-center justify-between py-3 border-b border-white/5 text-[0.8rem] font-black uppercase tracking-widest text-white group"
+              className="action-btn-icon"
+              id="btn-exclusivity"
+              onClick={() => setIsExclusivityModalOpen(true)}
             >
-              Información
-              <BiChevronDown className={`transition-transform duration-300 ${isInfoOpen ? 'rotate-180' : ''}`} size={20} />
+              <i className="bi bi-plus-lg"></i>
+              <span className="stat-value">EXCLUSIVA</span>
             </button>
-            {isInfoOpen && (
-              <div className="flex flex-col pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <InfoRow label="Publicado" val={new Date(product.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })} />
-                <InfoRow label="Categoría" val={product.product_type} isCapitalized />
-                <InfoRow label="BPM" val={product.bpm || '--'} />
-                <InfoRow label="Key" val={`${product.key || '--'} ${product.key_scale || ''}`} />
-                <InfoRow label="Reproducciones" val={product.plays_count || 0} />
-              </div>
-            )}
+          </div>
+
+          {/* Information List */}
+          <div className="info-list-container">
+            <div className="info-list" id="content-info">
+              <div className="info-title-desktop" style={{ fontSize: '0.8rem', color: '#666', marginBottom: '5px', fontWeight: 700, textTransform: 'uppercase' }}>Información</div>
+              <InfoRow label="Publicado" val={new Date(product.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })} />
+              <InfoRow label="Categoría" val={product.product_type === 'beat' ? 'Beat' : product.product_type} isCapitalized />
+              {product.product_type === 'beat' && (
+                <>
+                  <InfoRow label="BPM" val={product.bpm || '--'} />
+                  <InfoRow label="Key" val={`${product.key || '--'} ${product.key_scale || ''}`} />
+                </>
+              )}
+              <InfoRow label="Visualizaciones" val={product.plays_count || 0} />
+            </div>
           </div>
 
           {/* Tags */}
-          {product.tags && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {(Array.isArray(product.tags) ? product.tags : product.tags.split(',')).map((tag, i) => (
-                <Link key={i} to={`/explorar?tag=${tag.trim()}`} className="px-3 py-1.5 bg-[#111] border border-white/5 rounded-full text-[0.7rem] font-bold text-[#888] hover:text-white hover:border-white/20 transition-all">
+          <div className="tags-section" style={{ marginTop: '20px' }}>
+            <div className="tags-row" id="tags-container">
+              {product.tags && (Array.isArray(product.tags) ? product.tags : product.tags.split(',')).map((tag, i) => (
+                <Link key={i} to={`/explorar?tag=${tag.trim()}`} className="tag-pill">
                   #{tag.trim()}
                 </Link>
               ))}
             </div>
-          )}
+          </div>
         </aside>
 
         {/* --- RIGHT COL: MAIN CONTENT --- */}
-        <main className="product-main-content flex flex-col gap-10">
+        <main className="product-main-content">
 
-          {/* Header Title & Breadcrumb-ish */}
-          <div className="flex flex-col gap-2">
-            <h1 className="text-[3.5rem] font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl">
+          {/* Header Title & Producer */}
+          <div className="product-header-wrapper">
+            <h1 className="product-title">
               {product.name}
             </h1>
-            <div className="flex items-center gap-2 text-sm text-[#888] font-bold">
+            <div className="producer-info flex items-center gap-2 text-sm font-bold">
               <span>Por</span>
-              <Link to={`/@${product.users?.nickname}`} className="text-white hover:text-violet-400 flex items-center gap-1.5 transition-colors">
+              <Link
+                to={`/@${product.users?.nickname}`}
+                className="text-white hover:text-violet-400 flex items-center gap-1.5 transition-colors"
+                onMouseEnter={(e) => handleProducerEnter(e, product.users?.nickname, product.users?.is_verified)}
+                onMouseLeave={handleProducerLeave}
+              >
                 {product.users?.nickname}
                 {product.users?.is_verified && <BsPatchCheckFill size={14} className="text-violet-500" />}
               </Link>
             </div>
           </div>
 
-          {/* Pricing / Licenses Section */}
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
-              <h3 className="text-white text-[1rem] font-black uppercase tracking-widest">Licencias de Uso</h3>
-              <button className="text-[0.75rem] font-bold text-[#666] hover:text-white flex items-center gap-1.5 transition-colors">
-                <BiPlus size={16} /> Comparar
-              </button>
+          {/* Buying Section & Footer */}
+          <div className="buying-section-wrapper" style={{ marginTop: '-10px', marginBottom: '10px' }}>
+            <div className="section-headline" id="licenses-header">
+              <span>Licencias</span>
+              {product.product_type === 'beat' && (
+                <span
+                  className="desktop-only-flex"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setIsComparisonModalOpen(true)}
+                >
+                  <i className="bi bi-layout-sidebar-inset"></i> Comparar
+                </span>
+              )}
             </div>
 
-            {product.product_type === 'beat' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="buying-modules">
+              <div className="license-grid">
                 {product.available_licenses.map(lic => (
-                  <LicenseCard
+                  <div
                     key={lic.id}
-                    lic={lic}
-                    isSelected={selectedLicense === lic.id}
+                    className={`license-card-v2 ${selectedLicense === lic.id ? 'selected' : ''}`}
                     onClick={() => setSelectedLicense(lic.id)}
-                    formatPrice={formatPrice}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-[#111] border border-white/5 p-8 rounded-2xl flex flex-col items-center gap-6 text-center">
-                <div className="text-[0.7rem] font-black uppercase tracking-[4px] text-[#555]">Inversión Única</div>
-                <div className="text-[3rem] font-black text-white">{formatPrice(product.price_basic)}</div>
-                <div className="text-gray-500 font-medium max-w-[300px]">Acceso total e instantáneo a todos los archivos y sonidos incluidos.</div>
-              </div>
-            )}
-
-            {/* Main Checkout Button */}
-            <button
-              onClick={handleAddToCart}
-              className="w-full py-5 bg-white hover:bg-[#f0f0f0] text-black font-black uppercase tracking-[2px] text-sm rounded-xl flex items-center justify-center gap-4 transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-[0.982]"
-            >
-              <ShoppingCart size={20} />
-              Comprar {product.product_type === 'beat' ? activeLicense?.name : 'Kit'} • {formatPrice(product.product_type === 'beat' ? activeLicense?.price : product.price_basic)}
-            </button>
-            <p className="text-center text-[0.7rem] font-bold uppercase tracking-widest text-[#444] flex items-center justify-center gap-2">
-              <BiCheck className="text-green-500" size={18} /> Pago Protegido & Entrega Inmediata
-            </p>
-          </div>
-
-          {/* Waveform Player Section */}
-          <div className="bg-[#111] p-8 rounded-2xl border border-white/5 flex flex-col gap-6 relative group overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-violet-900/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div className="flex items-center gap-8 relative z-10">
-              <button
-                onClick={handlePlay}
-                className="w-16 h-16 bg-white hover:bg-[#eee] rounded-full flex items-center justify-center text-black shadow-lg transition-transform hover:scale-105 active:scale-90"
-              >
-                {isCurrent && isPlaying ? <BiPause size={36} /> : <BiPlay size={36} className="ml-1" />}
-              </button>
-              <div className="flex-1 h-[60px] relative">
-                {waveLoading && secureAudioUrl && (
-                  <div className="absolute inset-0 flex items-center justify-center text-[10px] uppercase font-black tracking-widest text-[#444] animate-pulse">
-                    Analizando Audio...
-                  </div>
-                )}
-                <div ref={waveformRef} className={`w-full h-full ${isCurrent ? 'opacity-100' : 'opacity-40'} transition-opacity`} />
-              </div>
-            </div>
-          </div>
-
-          {/* Description Section */}
-          <div className="flex flex-col gap-4">
-            <button
-              onClick={() => setIsDescOpen(!isDescOpen)}
-              className="flex items-center justify-between py-3 border-b border-white/5 text-[0.8rem] font-black uppercase tracking-widest text-white group"
-            >
-              Descripción
-              <BiChevronDown className={`transition-transform duration-300 ${isDescOpen ? 'rotate-180' : ''}`} size={20} />
-            </button>
-            {isDescOpen && (
-              <div className="text-[#888] text-[0.95rem] leading-relaxed whitespace-pre-line animate-in fade-in slide-in-from-top-2 duration-300">
-                {product.description || "Sin descripción disponible para este producto."}
-              </div>
-            )}
-          </div>
-
-          {/* Terms Section */}
-          <div className="flex flex-col gap-4">
-            <button
-              onClick={() => setIsTermsOpen(!isTermsOpen)}
-              className="flex items-center justify-between py-3 border-b border-white/5 text-[0.8rem] font-black uppercase tracking-widest text-white group"
-            >
-              Términos de Uso
-              <BiPlus className={`transition-transform duration-300 ${isTermsOpen ? 'rotate-45' : ''}`} size={20} />
-            </button>
-            {isTermsOpen && (
-              <div className="text-[#666] text-[0.85rem] leading-relaxed bg-[#111]/30 p-5 rounded-xl border border-white/[0.03] animate-in fade-in zoom-in-95 duration-200">
-                {product.product_type === 'beat' ? (
-                  <p>Este producto está sujeto a licencias de uso. La descarga gratuita permite el uso únicamente para plataformas no monetizadas. Para distribución en plataformas digitales (Spotify, Apple Music, etc.) es obligatorio adquirir una licencia comercial.</p>
-                ) : (
-                  <p>Este Kit es 100% Royalty Free para la creación de nuevas obras musicales. Está prohibida la reventa de las muestras individuales sin consentimiento del autor.</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Related Products Grid */}
-          <div className="related-section mt-10">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-white text-[1.4rem] font-black tracking-tight">Recomendado para ti</h3>
-              <div className="flex gap-2">
-                <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center text-[#555] hover:text-white hover:border-white/10 cursor-pointer transition-colors"><BiPlay /></div>
-                <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center text-[#555] hover:text-white hover:border-white/10 cursor-pointer transition-colors"><BiPlay className="rotate-180" /></div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {relatedProducts.slice(0, 4).map(p => (
-                <Link key={p.id} to={`/${p.product_type}/${p.public_slug || p.id}`} className="group flex flex-col gap-3">
-                  <div className="relative aspect-square rounded-xl overflow-hidden bg-[#111] border border-white/5">
-                    <img src={p.image_url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <BiPlay size={40} className="text-white" />
+                  >
+                    <div className="lic-card-header">
+                      <span className="lic-name">{lic.name}</span>
+                      <i className="bi bi-info-circle lic-details-trigger"></i>
+                    </div>
+                    <div className="lic-card-body" style={{ marginTop: '5px' }}>
+                      <span className="lic-files-preview">MP3, WAV</span>
+                      <span className="lic-price-v2">{formatPrice(lic.price)}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-white font-bold text-[0.85rem] truncate">{p.name}</span>
-                    <span className="text-[#555] text-[0.7rem] font-black uppercase tracking-wider">{p.users?.nickname}</span>
-                  </div>
-                </Link>
-              ))}
+                ))}
+              </div>
             </div>
+
+            <button
+              onClick={handleAddToCart}
+              className="w-full mt-5 py-5 bg-white hover:bg-[#eee] text-black font-extrabold uppercase tracking-[2px] text-sm rounded-xl flex items-center justify-center gap-4 transition-all shadow-xl active:scale-[0.985]"
+            >
+              <ShoppingCart size={20} />
+              {window.innerWidth > 768 ? 'AÑADIR AL CARRITO' : 'COMPRAR'}
+            </button>
           </div>
 
-        </main>
+          {/* Integrated Tabs System */}
+          <div className="product-tabs-container">
+            <div className="product-tabs-nav" ref={tabsNavRef}>
+              <button
+                className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`}
+                onClick={() => setActiveTab('info')}
+              >
+                Información
+              </button>
+              <button
+                className={`tab-btn ${activeTab === 'promos' ? 'active' : ''}`}
+                onClick={() => setActiveTab('promos')}
+              >
+                Promociones
+              </button>
+              <button
+                className={`tab-btn ${activeTab === 'negotiate' ? 'active' : ''}`}
+                onClick={() => setActiveTab('negotiate')}
+              >
+                Negociar
+              </button>
+              <div ref={tabIndicatorRef} className="tab-indicator"></div>
+            </div>
 
+            <div className="product-tab-panes">
+              {/* Pane: Información */}
+              {activeTab === 'info' && (
+                <div className="tab-pane active">
+                  <div id="dynamic-lic-terms" style={{ marginTop: '0', borderTop: 'none', paddingBottom: '20px' }}>
+                    <div className="terms-content-v2" style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase' }}>{activeLicense.name}</span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-x-4 gap-y-2 text-[0.82rem] text-gray-400 font-bold">
+                        <div className="flex items-center gap-2">
+                          <i className="bi bi-check-circle-fill text-violet-500"></i>
+                          {activeLicense.features?.[0] || 'MP3 + WAV'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <i className="bi bi-check-circle-fill text-violet-500"></i>
+                          Streams: {activeLicense.features?.[1]?.replace(' Streams', '') || '50,000'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <i className="bi bi-check-circle-fill text-violet-500"></i>
+                          Ventas: {activeLicense.features?.[2]?.replace(' Ventas', '') || '2,000'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <i className="bi bi-check-circle-fill text-violet-500"></i>
+                          PDF Oficial
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="about-section" style={{ marginTop: '10px' }}>
+                    <div className="text-[#888] text-[0.95rem] leading-relaxed whitespace-pre-line">
+                      {product.description || "Sin descripción disponible."}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pane: Promociones */}
+              {activeTab === 'promos' && (
+                <div className="tab-pane active">
+                  <div className="promos-container" style={{ padding: '20px 0' }}>
+                    <div className="promo-card-v2">
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', letterSpacing: '2px', marginBottom: '12px', textTransform: 'uppercase' }}>Oferta de Bienvenida</div>
+                      <div style={{ color: '#888', fontSize: '1rem', marginBottom: '25px', lineHeight: 1.5 }}>Obtén un <b style={{ color: '#fff' }}>10% OFF</b> inmediato en tu primera compra al unirte a la plataforma.</div>
+                      <button className="w-full max-w-[280px] bg-white text-black font-bold py-3 rounded-lg mx-auto block text-sm">
+                        OBTENER MI DESCUENTO
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pane: Negociar */}
+              {activeTab === 'negotiate' && (
+                <div className="tab-pane active">
+                  <div className="negotiate-pane-content" style={{ padding: '20px 0' }}>
+                    <div style={{ fontWeight: 800, color: '#fff', fontSize: '1.2rem', marginBottom: '5px' }}>¿Tienes un presupuesto diferente?</div>
+                    <div style={{ color: '#888', fontSize: '1rem', marginBottom: '25px', lineHeight: 1.4 }}>Envía tu oferta directamente al productor y recibe una respuesta en menos de 24h.</div>
+
+                    <div className="negotiate-form-inline">
+                      <div className="flex flex-col gap-2">
+                        <div className="floating-group has-prefix">
+                          <span className="prefix">$</span>
+                          <input type="text" id="offer-amount-inline" placeholder=" " />
+                          <label htmlFor="offer-amount-inline">TU OFERTA (USD)</label>
+                        </div>
+                        <div className="floating-group">
+                          <input type="email" id="offer-email-inline" placeholder=" " />
+                          <label htmlFor="offer-email-inline">TU EMAIL</label>
+                        </div>
+                        <button className="w-full bg-white text-black font-bold py-4 rounded-xl mt-2">
+                          ENVIAR PROPUESTA
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
       </div>
+
+      {/* Share Modal */}
+      <div className="related-products-section">
+        <div className="section-header">
+          <h3>Recomendado para ti</h3>
+          <div className="nav-arrows">
+            <button className="nav-arrow-btn" onClick={() => scrollRelated('left')} title="Anterior">
+              <BiChevronLeft size={24} />
+            </button>
+            <button className="nav-arrow-btn" onClick={() => scrollRelated('right')} title="Siguiente">
+              <BiChevronRight size={24} />
+            </button>
+          </div>
+        </div>
+        <div className="trending-grid" ref={trendingGridRef}>
+          {relatedProducts?.length > 0 ? (
+            relatedProducts.map((related) => (
+              <RecommendedCard
+                key={related.id}
+                item={related}
+                onPlay={() => playTrack(related)}
+                onProducerHover={handleProducerEnter}
+                onProducerLeave={handleProducerLeave}
+              />
+            ))
+          ) : (
+            <div className="text-gray-600 text-sm py-10 col-span-full text-center font-bold">Sin recomendaciones todavía</div>
+          )}
+        </div>
+      </div>
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        product={product}
+      />
+
+      <ExclusivityModal
+        isOpen={isExclusivityModalOpen}
+        onClose={() => setIsExclusivityModalOpen(false)}
+        product={product}
+      />
+
+      <ComparisonModal
+        isOpen={isComparisonModalOpen}
+        onClose={() => setIsComparisonModalOpen(false)}
+        licenses={product.licenses_list || [
+          { id: 'basic', name: 'Basic Lease', price: 20, features: ['MP3', '5,000 Streams', '500 Ventas'] },
+          { id: 'premium', name: 'Premium Lease', price: 40, features: ['MP3 + WAV', '50,000 Streams', '2,000 Ventas'] },
+          { id: 'trackout', name: 'Trackout Lease', price: 60, features: ['MP3 + WAV + TRACKOUT', '500,000 Streams', '10,000 Ventas'] },
+          { id: 'unlimited', name: 'Unlimited License', price: 80, features: ['FULL RIGHTS', 'UNLIMITED', 'UNLIMITED'] }
+        ]}
+        onSelect={(id) => setSelectedLicense(id)}
+      />
+
+      {hoveredProducer && (
+        <ProducerHoverCard
+          nickname={hoveredProducer.nickname}
+          isVerified={hoveredProducer.isVerified}
+          triggerRect={hoverRect}
+          onMouseEnter={() => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current); }}
+          onMouseLeave={handleProducerLeave}
+        />
+      )}
     </div>
   );
 };
 
 // --- SMALL HELPER COMPONENTS ---
 
+const RecommendedCard = ({ item, onPlay, onProducerHover, onProducerLeave }) => {
+  const { url: secureImage } = useSecureUrl(item.image_url);
+  const navigate = useNavigate();
+  const plays = item.plays_count || 0;
+
+  return (
+    <div className="trending-card">
+      <div className="t-card-cover">
+        <img
+          src={secureImage || '/images/portada-default.png'}
+          alt={item.name}
+          onClick={() => navigate(`/product/${item.slug || item.id}`)}
+        />
+        <button className="t-play-btn" onClick={(e) => { e.stopPropagation(); onPlay(); }} title="Reproducir">
+          <i className="bi bi-play-fill" style={{ marginLeft: '3px' }}></i>
+        </button>
+        <div className="t-overlay-badge" title="Reproducciones" onClick={() => navigate(`/product/${item.slug || item.id}`)}>
+          <Music2 size={12} /> {plays}
+        </div>
+      </div>
+      <div className="t-card-info">
+        <h4 title={item.name} onClick={() => navigate(`/product/${item.slug || item.id}`)}>{item.name}</h4>
+        <p
+          className="t-card-author"
+          onClick={() => navigate(`/@${item.users?.nickname}`)}
+          style={{ cursor: 'pointer' }}
+          onMouseEnter={(e) => onProducerHover(e, item.users?.nickname, item.users?.is_verified)}
+          onMouseLeave={onProducerLeave}
+        >
+          {item.users?.nickname || 'Unknown'}
+        </p>
+      </div>
+      <div className="t-meta-row">
+        <span style={{ textTransform: 'capitalize' }}>{item.product_type || 'Beat'}</span>
+        <span style={{ fontSize: '0.4rem' }}>●</span>
+        <span>{item.bpm ? item.bpm + ' BPM' : 'New'}</span>
+      </div>
+    </div>
+  );
+};
+
 const InfoRow = ({ label, val, isCapitalized }) => (
   <div className="flex items-center justify-between py-2 border-b border-white/[0.03] text-[0.8rem]">
     <span className="text-[#555] font-bold">{label}</span>
     <span className={`text-[#bbb] font-extrabold ${isCapitalized ? 'capitalize' : ''}`}>{val}</span>
-  </div>
-);
-
-const LicenseCard = ({ lic, isSelected, onClick, formatPrice }) => (
-  <div
-    onClick={onClick}
-    className={`p-6 rounded-2xl border transition-all duration-300 flex flex-col gap-4 cursor-pointer relative overflow-hidden ${isSelected ? 'border-violet-500 bg-violet-950/10 shadow-[0_0_30px_rgba(139,92,246,0.1)]' : 'border-white/5 bg-[#111] hover:bg-[#151515] hover:border-white/10'
-      }`}
-  >
-    {/* active indicator top bar */}
-    <div className={`absolute top-0 left-0 w-full h-[3px] transition-all ${isSelected ? 'bg-violet-600' : 'bg-transparent'}`}></div>
-
-    <div className="flex justify-between items-start">
-      <div className="flex flex-col gap-0.5">
-        <span className={`text-[10px] font-black uppercase tracking-[2px] ${isSelected ? 'text-violet-500' : 'text-[#555]'}`}>{lic.name}</span>
-        <span className="text-[1.8rem] font-black text-white leading-none mt-1">{formatPrice(lic.price)}</span>
-      </div>
-      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-violet-600 bg-violet-600' : 'border-[#333]'}`}>
-        {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-      </div>
-    </div>
-
-    <div className="flex flex-col gap-2.5 mt-2">
-      {lic.features.map((f, i) => (
-        <div key={i} className="flex items-center gap-2.5 text-[0.75rem] font-semibold text-[#888]">
-          <BiCheck className={`shrink-0 ${isSelected ? 'text-violet-500' : 'text-gray-600'}`} size={16} />
-          {f}
-        </div>
-      ))}
-    </div>
   </div>
 );
 
