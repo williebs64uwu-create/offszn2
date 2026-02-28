@@ -11,29 +11,36 @@ export const createNotification = async ({ userId, actorId = null, type, title =
             return null;
         }
 
-        console.log(`[NotificationController] Attempting to insert notification for user ${userId}, type: ${type}`);
+        const payload = {
+            user_id: userId,
+            actor_id: actorId || null,
+            type: type || 'generic',
+            title: title || 'Notificación',
+            message: message || '',
+            link: link || null,
+            read: false
+        };
+
+        console.log(`[NotificationController] Attempting DB insert for user ${userId}, type: ${type}`);
         const { data, error } = await supabase
             .from('notifications')
-            .insert([{
-                user_id: userId,
-                actor_id: actorId,
-                type,
-                title,
-                message,
-                link,
-                read: false
-            }])
+            .insert([payload])
             .select();
 
         if (error) {
-            console.error('[NotificationController] ❌ Error creating notification (DB):', JSON.stringify(error, null, 2));
+            console.error('[NotificationController] ❌ DB Error:', JSON.stringify(error, null, 2));
             return null;
         }
 
-        console.log(`[NotificationController] ✅ Notification created successfully for ${userId}`);
+        if (!data || data.length === 0) {
+            console.warn('[NotificationController] ⚠️ Insert succeeded but no data returned');
+            return true; // Return true as success even if select() is empty (some RLS cases)
+        }
+
+        console.log(`[NotificationController] ✅ Success for ${userId}`);
         return data;
     } catch (err) {
-        console.error('[NotificationController] Exception creating notification:', err.message);
+        console.error('[NotificationController] 💥 Exception:', err.message);
         return null;
     }
 };
@@ -142,7 +149,10 @@ export const createNotificationEndpoint = async (req, res) => {
         });
 
         if (!data) {
-            return res.status(500).json({ error: 'Error al insertar notificación en BD o regla de autoprevención.' });
+            return res.status(500).json({
+                error: 'Error al insertar notificación en BD.',
+                details: 'Revisa los logs del servidor para ver el error de Supabase.'
+            });
         }
 
         return res.status(201).json({ success: true, notification: data });
