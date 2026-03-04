@@ -33,7 +33,7 @@ export default function History() {
    const fetchHistory = async () => {
       try {
          setLoading(true);
-         const response = await apiClient.get('/activity');
+         const response = await apiClient.get('/activity/history');
          setHistory(response.data);
       } catch (error) {
          console.error('Error cargando historial:', error);
@@ -181,8 +181,8 @@ function HistoryList({ items, getGroupLabel, currentTrack, isPlaying, onPlay, on
 
                {/* Icon Type Label */}
                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isProfile ? 'bg-blue-500/10 text-blue-500' :
-                     isListen ? 'bg-emerald-500/10 text-emerald-500' :
-                        'bg-violet-500/10 text-violet-500'
+                  isListen ? 'bg-emerald-500/10 text-emerald-500' :
+                     'bg-violet-500/10 text-violet-500'
                   }`}>
                   {getIcon(item.entity_type)}
                </div>

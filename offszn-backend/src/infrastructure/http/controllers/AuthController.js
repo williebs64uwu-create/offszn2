@@ -138,25 +138,47 @@ export const changePassword = async (req, res) => {
         const userId = req.user?.userId;
         const { currentPassword, newPassword } = req.body;
 
+        console.log(`[changePassword] Intentando para userId: ${userId}`);
+
         if (!userId || !currentPassword || !newPassword) {
             return res.status(400).json({ error: 'Faltan datos requeridos' });
         }
 
         const { data: user, error: fetchError } = await supabase
             .from('users')
-            .select('password')
+            .select('password, email')
             .eq('id', userId)
             .single();
 
         if (fetchError || !user) {
+            console.error(`[changePassword] Usuario no encontrado o error:`, fetchError);
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
 
-        const isPasswordValid = await comparePassword(currentPassword, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+        if (user.password) {
+            const isPasswordValid = await comparePassword(currentPassword, user.password);
+            if (!isPasswordValid) {
+                console.warn(`[changePassword] Contraseña actual incorrecta para: ${user.email}`);
+                return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+            }
+        } else {
+            console.warn(`[changePassword] El usuario ${user.email} no tiene contraseña en la tabla users. Saltando verificación local.`);
         }
 
+        // 2. Actualizar en Supabase Auth (Management)
+        console.log(`[changePassword] Actualizando Supabase Auth para: ${userId}`);
+        const { error: authUpdateError } = await supabase.auth.admin.updateUserById(userId, {
+            password: newPassword
+        });
+
+        if (authUpdateError) {
+            console.error(`[changePassword] Error actualizando Supabase Auth:`, authUpdateError);
+            // Si es un error de "password too short" u otro, lo mandamos al front
+            return res.status(400).json({ error: authUpdateError.message });
+        }
+
+        // 3. Actualizar en nuestra tabla local
+        console.log(`[changePassword] Actualizando tabla local para: ${userId}`);
         const hashedPassword = await hashPassword(newPassword);
         const { error: updateError } = await supabase
             .from('users')
@@ -165,9 +187,10 @@ export const changePassword = async (req, res) => {
 
         if (updateError) throw updateError;
 
+        console.log(`[changePassword] Éxito para: ${user.email}`);
         res.status(200).json({ message: 'Contraseña actualizada con éxito' });
     } catch (err) {
         console.error("Error in changePassword:", err.message);
-        res.status(500).json({ error: 'Error al cambiar la contraseña' });
+        res.status(500).json({ error: 'Error interno al cambiar la contraseña' });
     }
 };

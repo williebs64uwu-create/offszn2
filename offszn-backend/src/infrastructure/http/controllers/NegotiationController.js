@@ -87,7 +87,8 @@ export const getNegotiations = async (req, res) => {
                     name,
                     public_slug,
                     image_url,
-                    product_type
+                    product_type,
+                    users:users!products_producer_id_fkey(nickname, is_verified)
                 )
             `);
 
@@ -129,7 +130,7 @@ export const getNegotiationById = async (req, res) => {
                 )
             `)
             .eq('id', id)
-            .eq('producer_id', userId)
+            .or(`producer_id.eq.${userId},buyer_id.eq.${userId}`)
             .single();
 
         if (error || !negotiation) {
@@ -169,7 +170,6 @@ export const updateNegotiationStatus = async (req, res) => {
 
         // --- NEW: Send Email to Buyer ---
         try {
-            // Get product name for email
             const { data: product } = await supabase
                 .from('products')
                 .select('name')
@@ -182,8 +182,18 @@ export const updateNegotiationStatus = async (req, res) => {
                 status,
                 response_message
             );
+
+            // Notify buyer if they are a registered user
+            if (negotiation.buyer_id) {
+                await createNotification({
+                    user_id: negotiation.buyer_id,
+                    type: 'negotiation',
+                    message: `Tu oferta para "${product?.name || 'Producto'}" ha sido ${status === 'accepted' ? 'ACEPTADA' : 'RECHAZADA'}`,
+                    link: `/dashboard/negotiations`
+                });
+            }
         } catch (emailErr) {
-            console.error('Non-blocking Email Error (Buyer):', emailErr.message);
+            console.error('Non-blocking Email/Notify Error (Buyer):', emailErr.message);
         }
 
         res.status(200).json(negotiation);

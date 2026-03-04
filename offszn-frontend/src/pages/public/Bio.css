@@ -1,0 +1,68 @@
+/* Bio Link Page Styles */
+
+.bio-page {
+    /* Hide the main navbar when in Bio view */
+    background-color: #000;
+}
+
+/* Animations */
+@keyframes slideUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bio-page .animate-cascade {
+    opacity: 0;
+    transform: translateY(20px);
+    /* The transition helps if we toggle classes later, but the initial animation handles the load */
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+/* We use a class on a parent container to trigger the cascade */
+.opacity-100 .animate-cascade {
+    animation: slideUpFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Delays for the cascade effect */
+.delay-1 {
+    animation-delay: 0.1s;
+}
+
+.delay-2 {
+    animation-delay: 0.2s;
+}
+
+.delay-3 {
+    animation-delay: 0.3s;
+}
+
+.delay-4 {
+    animation-delay: 0.4s;
+}
+
+.delay-5 {
+    animation-delay: 0.5s;
+}
+
+.delay-6 {
+    animation-delay: 0.6s;
+}
+
+.delay-7 {
+    animation-delay: 0.7s;
+}
+
+.delay-8 {
+    animation-delay: 0.8s;
+}
+
+/* In the Bio view, we typically don't want the sticky player to overlap critical 
+   bottom content unless it's playing, but the sticky player handles itself. 
+   We just need to ensure the main container has enough padding. */

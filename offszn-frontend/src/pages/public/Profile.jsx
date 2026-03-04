@@ -12,6 +12,7 @@ import { CheckCircle2, Heart, Share2, Globe, Search, Download, MessageSquare, Us
 import toast from 'react-hot-toast';
 import { useFavorites } from '../../hooks/useFavorites';
 import ProfilePersonalizerModal from '../../components/profile/ProfilePersonalizerModal';
+import ProfileShareModal from '../../components/profile/ProfileShareModal';
 import SecureImage from '../../components/ui/SecureImage';
 import ProducerHoverCard from '../../components/profile/ProducerHoverCard';
 
@@ -25,6 +26,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('products');
   const [filter, setFilter] = useState('popular');
   const [isPersonalizerOpen, setIsPersonalizerOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [hoveredArtist, setHoveredArtist] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const hoverTimerRef = useRef(null);
@@ -59,9 +61,7 @@ export default function Profile() {
   };
 
   const handleShareProfile = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success("Enlace copiado al portapapeles");
+    setIsShareModalOpen(true);
   };
 
   const fetchProfileData = async () => {
@@ -425,6 +425,7 @@ export default function Profile() {
       )}
 
       <ProfilePersonalizerModal isOpen={isPersonalizerOpen} onClose={() => setIsPersonalizerOpen(false)} profile={profile} onUpdate={fetchProfileData} />
+      <ProfileShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} profile={profile} />
     </div>
   );
 }

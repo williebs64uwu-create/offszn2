@@ -6,7 +6,7 @@ export const getUserByNickname = async (req, res) => {
         const { data, error } = await supabase
             .from('users')
             .select(`
-                id, nickname, first_name, last_name, avatar_url, banner_url, is_verified, role, bio, socials
+                id, nickname, first_name, last_name, avatar_url, banner_url, is_verified, role, bio, socials, socials_order
             `)
             .eq('nickname', nickname)
             .single();
@@ -38,7 +38,7 @@ export const getUserProfile = async (req, res) => {
         const { data, error } = await supabase
             .from('users')
             .select(`
-                id, nickname, first_name, last_name, avatar_url, banner_url, is_verified, role, bio, socials,
+                id, nickname, first_name, last_name, avatar_url, banner_url, is_verified, role, bio, socials, socials_order,
                 followers:followers!user_id(count),
                 following:followers!follower_id(count),
                 products:products!producer_id(count)
@@ -80,11 +80,11 @@ export const getUserProfile = async (req, res) => {
 export const updateMyProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { first_name, last_name, bio, socials } = req.body;
+        const { first_name, last_name, bio, socials, socials_order } = req.body;
 
         const { data, error } = await supabase
             .from('users')
-            .update({ first_name, last_name, bio, socials })
+            .update({ first_name, last_name, bio, socials, socials_order })
             .eq('id', userId)
             .select()
             .single();
@@ -100,11 +100,11 @@ export const updateMyProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { nickname, first_name, last_name, bio, socials } = req.body;
+        const { nickname, first_name, last_name, bio, socials, socials_order } = req.body;
 
         const { data, error } = await supabase
             .from('users')
-            .update({ nickname, first_name, last_name, bio, socials })
+            .update({ nickname, first_name, last_name, bio, socials, socials_order })
             .eq('id', userId)
             .select()
             .single();

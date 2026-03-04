@@ -90,7 +90,7 @@ const LEGACY_COLORS = {
 };
 
 export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onUpdate }) {
-    const [view, setView] = useState('main'); // 'main', 'banner', 'avatar', 'socials'
+    const [view, setView] = useState('main'); // 'main', 'banner', 'avatar'
     const [selectedBanner, setSelectedBanner] = useState(profile?.banner_url || 'solid:#8b5cf6');
     const [isDynamicTheme, setIsDynamicTheme] = useState(profile?.socials?.dynamic_theme === true || profile?.socials?.dynamic_theme === "true");
     const [socials, setSocials] = useState(profile?.socials || {});
@@ -150,10 +150,6 @@ export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onU
     };
 
     const handleBannerApply = async (style) => {
-        if (style.startsWith('gif:') && !isPro) {
-            toast.error("Los banners GIF son exclusivos para usuarios PRO");
-            return;
-        }
         setSelectedBanner(style);
         // En el legado, el guardado de banner era automático al clickear (excepto GIFs que pedían confirmación/pago)
         // Pero aquí seguiremos el flujo de "Vista previa" y luego "Aplicar" si queremos, o auto-save.
@@ -164,11 +160,6 @@ export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onU
     const handleFileUpload = async (e, bucket) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        if (file.type === 'image/gif' && !isPro) {
-            toast.error("Subir GIFs es una función exclusiva para usuarios PRO");
-            return;
-        }
 
         if (bucket === 'avatars' && file.type !== 'image/gif') {
             setAvatarFile(file);
@@ -323,21 +314,6 @@ export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onU
                                 <BiChevronRight className="text-[#444] text-[1.1rem] group-hover:text-white transition-colors" />
                             </div>
 
-                            {/* Option: Socials */}
-                            <div
-                                onClick={() => setView('socials')}
-                                className="group p-6 bg-[#141414] border border-[#1a1a1a] rounded-[16px] cursor-pointer flex items-center gap-5 transition-all duration-300 hover:border-blue-500 hover:-translate-y-0.5 hover:bg-[#181818]"
-                            >
-                                <div className="w-[52px] h-[52px] bg-gradient-to-br from-blue-600/20 to-blue-600/5 text-blue-500 border border-blue-600/20 rounded-[14px] flex items-center justify-center text-[1.2rem]">
-                                    <Globe />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="font-extrabold text-[1.05rem] text-white mb-1">Redes Sociales</div>
-                                    <div className="text-[0.8rem] text-[#888] font-medium">Spotify, Instagram, YouTube...</div>
-                                </div>
-                                <BiChevronRight className="text-[#444] text-[1.1rem] group-hover:text-white transition-colors" />
-                            </div>
-
                             {/* Option: Dynamic Theme */}
                             <div className="p-6 bg-[#141414] border border-[#1a1a1a] rounded-[16px] flex items-center gap-5">
                                 <div className="w-[52px] h-[52px] bg-gradient-to-br from-violet-600/20 to-violet-600/5 text-[#8b5cf6] border border-violet-600/20 rounded-[14px] flex items-center justify-center text-[1.5rem]">
@@ -388,7 +364,7 @@ export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onU
                                         <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'banners')} />
                                     </label>
                                     <label className="flex-1 bg-[#141414] border border-[#1a1a1a] border-l-2 border-l-blue-600 rounded-[12px] flex items-center justify-center gap-2 font-extrabold text-[0.85rem] cursor-pointer hover:bg-[#1a1a1a] hover:border-[#333] transition-all">
-                                        <BsFiletypeGif className="text-blue-500" /> <span className="hidden xs:inline">Subir GIF</span><span className="xs:hidden">GIF</span> <span className="text-[0.6rem] bg-blue-600 px-1 py-0.5 rounded-[3px]">PRO</span>
+                                        <BsFiletypeGif className="text-blue-500" /> <span className="hidden xs:inline">Subir GIF</span><span className="xs:hidden">GIF</span>
                                         <input type="file" className="hidden" accept="image/gif" onChange={(e) => handleFileUpload(e, 'banners')} />
                                     </label>
                                 </div>
@@ -503,7 +479,7 @@ export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onU
                                         <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'avatars')} />
                                     </label>
                                     <label className="flex-1 h-12 bg-[#141414] border border-[#1a1a1a] border-l-2 border-l-violet-600 rounded-[12px] flex items-center justify-center gap-2 font-extrabold text-[0.85rem] cursor-pointer hover:bg-[#1a1a1a] hover:border-[#333] transition-all">
-                                        <BsFiletypeGif className="text-violet-500" /> Subir GIF <span className="text-[0.6rem] bg-violet-600 px-1 py-0.5 rounded-[3px]">PRO</span>
+                                        <BsFiletypeGif className="text-violet-500" /> Subir GIF
                                         <input type="file" className="hidden" accept="image/gif" onChange={(e) => handleFileUpload(e, 'avatars')} />
                                     </label>
                                 </div>
@@ -540,58 +516,6 @@ export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onU
                         </div>
                     )}
 
-                    {view === 'socials' && (
-                        <div className="flex flex-col gap-6">
-                            <div className="flex items-center gap-3 mb-2">
-                                <button
-                                    onClick={() => setView('main')}
-                                    className="bg-[#1a1a1a] border-none text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-[#333] transition-all"
-                                >
-                                    <BsArrowLeft />
-                                </button>
-                                <span className="text-[0.75rem] text-[#888] font-extrabold uppercase tracking-[1.5px]">Tus Enlaces</span>
-                            </div>
-
-                            <div className="space-y-4">
-                                <SocialInput
-                                    label="Spotify"
-                                    icon={<FaSpotify />}
-                                    value={socials.spotify || ''}
-                                    onChange={(val) => setSocials({ ...socials, spotify: val })}
-                                    placeholder="https://open.spotify.com/artist/..."
-                                />
-                                <SocialInput
-                                    label="Instagram"
-                                    icon={<FaInstagram />}
-                                    value={socials.instagram || ''}
-                                    onChange={(val) => setSocials({ ...socials, instagram: val })}
-                                    placeholder="@usuario"
-                                />
-                                <SocialInput
-                                    label="YouTube"
-                                    icon={<FaYoutube />}
-                                    value={socials.youtube || ''}
-                                    onChange={(val) => setSocials({ ...socials, youtube: val })}
-                                    placeholder="Canal o handle"
-                                />
-                                <SocialInput
-                                    label="TikTok"
-                                    icon={<FaTiktok />}
-                                    value={socials.tiktok || ''}
-                                    onChange={(val) => setSocials({ ...socials, tiktok: val })}
-                                    placeholder="@usuario"
-                                />
-                            </div>
-
-                            <button
-                                onClick={() => handleSave()}
-                                className="mt-2 w-full py-4 bg-white text-black font-extrabold rounded-[12px] text-[0.95rem] transition-all hover:-translate-y-0.5 hover:bg-[#f0f0f0] flex items-center justify-center gap-2"
-                            >
-                                {isSaving && <Loader2 className="animate-spin w-4 h-4" />}
-                                Guardar Enlaces
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 <style>{`
@@ -601,7 +525,7 @@ export default function ProfilePersonalizerModal({ isOpen, onClose, profile, onU
                     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
                 `}</style>
             </div>
-        </div>
+        </div >
     );
 }
 

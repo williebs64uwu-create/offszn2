@@ -13,14 +13,14 @@ import ProductDetail from '../pages/ProductDetail';
 import NotFound from '../pages/NotFound';
 import Success from '../pages/Success';
 import Checkout from '../pages/Checkout';
-import MyPurchases from '../pages/MyPurchases'; // Si existe
+import MyPurchases from '../pages/MyPurchases';
 import Messages from '../pages/Messages';
 import Reels from '../pages/Reels';
 import { useAuth } from '../store/authStore';
 
-
-// Pages - Public (AQUÍ FALTABA ESTE IMPORT)
+// Pages - Public
 import Profile from '../pages/public/Profile';
+import Bio from '../pages/public/Bio';
 import CommunityPage from '../pages/public/CommunityPage';
 
 // Pages - Auth
@@ -45,9 +45,9 @@ import Analytics from '../pages/dashboard/producer/Analytics';
 import Coupons from '../pages/dashboard/producer/Coupons';
 import SubscriptionPlans from '../pages/dashboard/producer/SubscriptionPlans';
 import Negotiations from '../pages/dashboard/producer/Negotiations';
+import History from '../pages/dashboard/History';
 import Favorites from '../pages/dashboard/Favorites';
 import { PayPalScriptProvider } from "@paypal/react-paypal-js";
-
 
 const AppRouter = () => {
   const { checkSession } = useAuth();
@@ -102,6 +102,9 @@ const AppRouter = () => {
           <Route path="/:username" element={<Profile />} />
         </Route>
 
+        {/* --- BIO LINKTREE ROUTE (No Main Navbar) --- */}
+        <Route path="/b/:username" element={<Bio />} />
+
         {/* --- RUTAS DE AUTENTICACIÓN --- */}
         <Route path="/auth" element={<AuthLayout />}>
           <Route path="login" element={<Login />} />
@@ -126,16 +129,14 @@ const AppRouter = () => {
           <Route path="edit-beat/:id" element={<EditBeat />} />
           <Route path="import-youtube" element={<YouTubeImport />} />
           <Route path="my-products" element={<MyProducts />} />
-<Route path="licenses" element={<LicenseManager />} />
+          <Route path="licenses" element={<LicenseManager />} />
           <Route path="collaborations" element={<Collaborations />} />
           <Route path="negotiations" element={<Negotiations />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="coupons" element={<Coupons />} />
           <Route path="plans" element={<SubscriptionPlans />} />
           <Route path="favorites" element={<Favorites />} />
-
-          {/* Placeholder para rutas futuras */}
-          <Route path="licencias" element={<div>Licencias (Próximamente)</div>} />
+          <Route path="history" element={<History />} />
         </Route>
 
         {/* --- 404 NOT FOUND --- */}

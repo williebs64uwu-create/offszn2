@@ -36,7 +36,11 @@ export default function AccountSettings() {
     lastName: '',
     nickname: '',
     email: '',
-    avatarUrl: ''
+    avatarUrl: '',
+    spotify: '',
+    instagram: '',
+    youtube: '',
+    tiktok: ''
   });
 
   // Password State
@@ -77,7 +81,11 @@ export default function AccountSettings() {
           lastName: data.last_name || '',
           nickname: data.nickname || '',
           email: data.email || authUser.email,
-          avatarUrl: data.avatar_url || ''
+          avatarUrl: data.avatar_url || '',
+          spotify: data.socials?.spotify || '',
+          instagram: data.socials?.instagram || '',
+          youtube: data.socials?.youtube || '',
+          tiktok: data.socials?.tiktok || ''
         });
       }
     } catch (error) {
@@ -132,6 +140,13 @@ export default function AccountSettings() {
           last_name: formData.lastName,
           nickname: formData.nickname,
           avatar_url: finalAvatarUrl,
+          socials: {
+            ...user.socials,
+            spotify: formData.spotify,
+            instagram: formData.instagram,
+            youtube: formData.youtube,
+            tiktok: formData.tiktok
+          },
           updated_at: new Date()
         })
         .eq('id', user.id);
@@ -272,7 +287,62 @@ export default function AccountSettings() {
             </div>
             <div className="form-actions">
               <button type="submit" disabled={saving} className="btn-primary-sm">
-                {saving ? <Loader2 className="animate-spin" size={20} /> : 'Guardar cambios'}
+                {saving ? <Loader2 className="animate-spin" size={20} /> : 'Guardar información personal'}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="settings-group">
+          <h2 className="settings-group-title">Redes Sociales</h2>
+          <form className="form-grid" onSubmit={saveChanges}>
+            <div className="form-group">
+              <label>Spotify (Link de artista)</label>
+              <input
+                type="text"
+                name="spotify"
+                value={formData.spotify}
+                onChange={handleFormChange}
+                className="form-input"
+                placeholder="https://open.spotify.com/artist/..."
+              />
+            </div>
+            <div className="form-group">
+              <label>Instagram</label>
+              <input
+                type="text"
+                name="instagram"
+                value={formData.instagram}
+                onChange={handleFormChange}
+                className="form-input"
+                placeholder="@usuario"
+              />
+            </div>
+            <div className="form-group">
+              <label>YouTube</label>
+              <input
+                type="text"
+                name="youtube"
+                value={formData.youtube}
+                onChange={handleFormChange}
+                className="form-input"
+                placeholder="Canal o handle"
+              />
+            </div>
+            <div className="form-group">
+              <label>TikTok</label>
+              <input
+                type="text"
+                name="tiktok"
+                value={formData.tiktok}
+                onChange={handleFormChange}
+                className="form-input"
+                placeholder="@usuario"
+              />
+            </div>
+            <div className="form-actions">
+              <button type="submit" disabled={saving} className="btn-primary-sm">
+                {saving ? <Loader2 className="animate-spin" size={20} /> : 'Guardar redes sociales'}
               </button>
             </div>
           </form>

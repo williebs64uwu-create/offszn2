@@ -281,7 +281,7 @@ const Navbar = () => {
 
                       <div className="h-px bg-white/5 my-2"></div>
 
-                      <UserLink to="/dashboard/account" icon={Settings} label="Configuración" />
+                      <UserLink to="/dashboard/settings" icon={Settings} label="Configuración" />
                       <UserLink to="/help" icon={LifeBuoy} label="Centro de Ayuda" />
 
                       <button

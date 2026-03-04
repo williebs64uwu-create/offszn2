@@ -282,7 +282,7 @@ export default function Negotiations() {
                                                 <div className="text-white font-medium">
                                                     {viewType === 'producer'
                                                         ? (negotiation.buyer_name || negotiation.buyer_email.split('@')[0])
-                                                        : 'Productor'
+                                                        : (negotiation.product?.users?.nickname || 'Productor')
                                                     }
                                                 </div>
                                                 <div className="text-gray-500 text-sm">

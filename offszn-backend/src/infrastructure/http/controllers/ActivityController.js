@@ -20,7 +20,7 @@ export const recordActivity = async (req, res) => {
                 user_id: userId,
                 entity_id,
                 entity_type,
-                created_at: new Date().toISOString()
+                last_action_at: new Date().toISOString()
             }, { onConflict: 'user_id, entity_id, entity_type' });
 
         if (error) throw error;
@@ -45,7 +45,7 @@ export const getActivityHistory = async (req, res) => {
             .from('activity_history')
             .select('*')
             .eq('user_id', userId)
-            .order('created_at', { ascending: false });
+            .order('last_action_at', { ascending: false });
 
         if (type) {
             query = query.eq('entity_type', type);
@@ -68,8 +68,8 @@ export const getActivityHistory = async (req, res) => {
             } else if (item.entity_type === 'profile') {
                 const { data: profile } = await supabase
                     .from('users')
-                    .select('id, username, avatar_url, nickname')
-                    .eq('username', item.entity_id)
+                    .select('id, avatar_url, nickname')
+                    .eq('nickname', item.entity_id)
                     .single();
                 return { ...item, profile };
             }
