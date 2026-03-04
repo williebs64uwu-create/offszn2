@@ -14,7 +14,7 @@ const MainLayout = () => {
       <Navbar />
 
       {/* Contenido Dinámico */}
-      <main className="flex-grow flex flex-col w-full">
+      <main id="app-main" className="flex-grow flex flex-col w-full">
         <Outlet />
       </main>
 

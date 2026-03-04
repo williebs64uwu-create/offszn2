@@ -5,32 +5,77 @@ export const getConversations = async (req, res) => {
     try {
         const userId = req.user.userId;
 
+        // 1. Get conversation IDs where the user is a participant
+        const { data: participations, error: partError } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', userId);
+
+        if (partError) throw partError;
+        if (!participations?.length) return res.status(200).json([]);
+
+        const convIds = participations.map(p => p.conversation_id);
+
+        // 2. Get conversation details and all participants
         const { data: conversations, error } = await supabase
             .from('conversations')
             .select(`
                 *,
-                p1:users!conversations_participant_1_fkey (id, nickname, first_name, last_name, avatar_url),
-                p2:users!conversations_participant_2_fkey (id, nickname, first_name, last_name, avatar_url)
+                conversation_participants(user_id, users(id, nickname, avatar_url))
             `)
-            .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
+            .in('id', convIds)
             .order('updated_at', { ascending: false });
 
         if (error) throw error;
 
-        const formatted = conversations.map(c => {
-            const otherUser = c.participant_1 === userId ? c.p2 : c.p1;
-            const otherUserData = otherUser || { nickname: 'Usuario Desconocido' };
+        // 3. Resolve user profiles and fetch last messages manually (no last_message column)
+        const formatted = await Promise.all(conversations.map(async (c) => {
+            let name = c.group_name;
+            let avatar = c.group_avatar_url;
+            let otherUserId = null;
+
+            if (!c.is_group) {
+                const otherP = c.conversation_participants.find(p => p.user_id !== userId);
+                let otherUser = otherP?.users;
+
+                if (!otherUser && otherP?.user_id) {
+                    const { data: fetchedUser } = await supabase
+                        .from('users')
+                        .select('id, nickname, avatar_url')
+                        .eq('id', otherP.user_id)
+                        .single();
+                    if (fetchedUser) otherUser = fetchedUser;
+                }
+
+                if (otherUser) {
+                    name = otherUser.nickname;
+                    avatar = otherUser.avatar_url;
+                    otherUserId = otherUser.id;
+                } else {
+                    name = 'Usuario Desconocido';
+                }
+            }
+
+            // Fetch last message from messages table
+            const { data: lastMsg } = await supabase
+                .from('messages')
+                .select('content, type, created_at')
+                .eq('conversation_id', c.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
             return {
                 id: c.id,
-                name: otherUserData.nickname || `${otherUserData.first_name || ''} ${otherUserData.last_name || ''}`.trim(),
-                avatar: otherUserData.avatar_url || null,
-                otherUserId: otherUserData.id,
-                lastMessage: c.last_message || 'Inicia la conversación',
-                time: c.updated_at,
+                isGroup: c.is_group,
+                name: name,
+                avatar: avatar,
+                otherUserId: otherUserId,
+                lastMessage: lastMsg?.content || (lastMsg?.type === 'image' ? '📷 Imagen' : 'Inicia la conversación'),
+                time: lastMsg?.created_at || c.updated_at,
                 unread: false
             };
-        });
+        }));
 
         res.status(200).json(formatted);
     } catch (err) {
@@ -45,22 +90,18 @@ export const getMessages = async (req, res) => {
 
         const { data: messages, error } = await supabase
             .from('messages')
-            .select('*')
+            .select(`
+                *,
+                sender:users(nickname, avatar_url),
+                parent:messages!reply_to_id(id, content, sender:users(nickname, avatar_url)),
+                message_reactions(*)
+            `)
             .eq('conversation_id', conversationId)
             .order('created_at', { ascending: true });
 
         if (error) throw error;
 
-        const formatted = messages.map(m => ({
-            id: m.id,
-            senderId: m.sender_id,
-            content: m.content,
-            type: m.type,
-            mediaUrl: m.media_url,
-            createdAt: m.created_at
-        }));
-
-        res.status(200).json(formatted);
+        res.status(200).json(messages);
     } catch (err) {
         console.error("Error getMessages:", err);
         res.status(500).json({ error: 'Error al cargar mensajes' });
@@ -70,7 +111,7 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { conversationId, content, type = 'text', mediaUrl } = req.body;
+        const { conversationId, content, type = 'text', mediaUrl, replyToId } = req.body;
 
         if (!conversationId || (!content && !mediaUrl)) {
             return res.status(400).json({ error: 'Faltan datos' });
@@ -83,37 +124,47 @@ export const sendMessage = async (req, res) => {
                 sender_id: userId,
                 content: content || '',
                 type: type,
-                media_url: mediaUrl
+                media_url: mediaUrl,
+                reply_to_id: replyToId
             })
-            .select()
+            .select(`
+                *,
+                sender:users(nickname, avatar_url),
+                parent:messages!reply_to_id(id, content, sender:users(nickname, avatar_url)),
+                message_reactions(*)
+            `)
             .single();
 
         if (error) throw error;
 
+        // Update updated_at only, as last_message column is missing
         await supabase
             .from('conversations')
             .update({
-                last_message: type === 'text' ? content : `Envió un ${type}`,
                 updated_at: new Date()
             })
             .eq('id', conversationId);
 
-        // Fetch conversation to find target user
-        const { data: conv } = await supabase.from('conversations').select('participant_1, participant_2').eq('id', conversationId).single();
-        if (conv) {
-            const targetUserId = conv.participant_1 === userId ? conv.participant_2 : conv.participant_1;
+        // Fetch participants for notifications
+        const { data: participants } = await supabase
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', conversationId)
+            .neq('user_id', userId);
 
-            // Get sender name for a better notification
+        if (participants?.length) {
             const { data: sender } = await supabase.from('users').select('nickname').eq('id', userId).single();
             const senderName = sender?.nickname || 'Alguien';
 
-            await createNotification({
-                userId: targetUserId,
-                actorId: userId,
-                type: 'new_message',
-                message: `Tienes un nuevo mensaje de <strong>${senderName}</strong>.`,
-                link: `/messages/${conversationId}`
-            });
+            for (const p of participants) {
+                await createNotification({
+                    userId: p.user_id,
+                    actorId: userId,
+                    type: 'new_message',
+                    message: `Tienes un nuevo mensaje de <strong>${senderName}</strong>.`,
+                    link: `/messages/${conversationId}`
+                });
+            }
         }
 
         res.status(201).json(msg);
@@ -130,30 +181,163 @@ export const startConversation = async (req, res) => {
 
         if (!targetUserId) return res.status(400).json({ error: 'ID de usuario requerido' });
 
-        const { data: existing } = await supabase
-            .from('conversations')
-            .select('id')
-            .or(`and(participant_1.eq.${userId},participant_2.eq.${targetUserId}),and(participant_1.eq.${targetUserId},participant_2.eq.${userId})`)
-            .maybeSingle();
+        // Check if a 1v1 conversation already exists
+        const { data: myParticipations } = await supabase.from('conversation_participants').select('conversation_id').eq('user_id', userId);
 
-        if (existing) {
-            return res.status(200).json({ id: existing.id, message: 'Conversación existente' });
+        let existingId = null;
+        if (myParticipations?.length) {
+            const myConvIds = myParticipations.map(p => p.conversation_id);
+            const { data: common } = await supabase
+                .from('conversation_participants')
+                .select('conversation_id')
+                .eq('user_id', targetUserId)
+                .in('conversation_id', myConvIds);
+
+            if (common?.length) {
+                // Verify it's not a group
+                const { data: conv } = await supabase
+                    .from('conversations')
+                    .select('id, is_group')
+                    .in('id', common.map(c => c.conversation_id))
+                    .eq('is_group', false)
+                    .maybeSingle();
+
+                if (conv) existingId = conv.id;
+            }
         }
 
-        const { data: newConv, error } = await supabase
+        if (existingId) {
+            return res.status(200).json({ id: existingId, message: 'Conversación existente' });
+        }
+
+        const { data: newConv, error: convError } = await supabase
             .from('conversations')
             .insert({
-                participant_1: userId,
-                participant_2: targetUserId,
-                last_message: 'Nueva conversación iniciada'
+                is_group: false
+                // last_message column removed
             })
             .select()
             .single();
 
-        if (error) throw error;
+        if (convError) throw convError;
+
+        await supabase.from('conversation_participants').insert([
+            { conversation_id: newConv.id, user_id: userId },
+            { conversation_id: newConv.id, user_id: targetUserId }
+        ]);
+
         res.status(201).json({ id: newConv.id, message: 'Conversación creada' });
     } catch (err) {
         console.error("Error startConversation:", err);
         res.status(500).json({ error: 'Error al iniciar chat' });
+    }
+};
+
+export const createGroup = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { name, avatarUrl, participantIds } = req.body;
+
+        if (!name) return res.status(400).json({ error: 'Nombre del grupo requerido' });
+        if (!participantIds || !participantIds.length) return res.status(400).json({ error: 'Se requieren integrantes' });
+
+        // 1. Create conversation record
+        const { data: conv, error: convErr } = await supabase
+            .from('conversations')
+            .insert({
+                is_group: true,
+                group_name: name,
+                group_avatar_url: avatarUrl || null
+                // last_message column removed
+            })
+            .select()
+            .single();
+
+        if (convErr) throw convErr;
+
+        // 2. Prepare participants list (current user + selected users)
+        const participants = [
+            { conversation_id: conv.id, user_id: userId },
+            ...participantIds.map(id => ({ conversation_id: conv.id, user_id: id }))
+        ];
+
+        const { error: partErr } = await supabase
+            .from('conversation_participants')
+            .insert(participants);
+
+        if (partErr) throw partErr;
+
+        res.status(201).json(conv);
+    } catch (err) {
+        console.error("Error createGroup:", err);
+        res.status(500).json({ error: 'Error al crear grupo' });
+    }
+};
+
+export const getMessageById = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { data: msg, error } = await supabase
+            .from('messages')
+            .select(`
+                *,
+                sender:users(id, nickname, avatar_url),
+                parent:messages!reply_to_id(id, content, sender:users(id, nickname, avatar_url)),
+                message_reactions(*)
+            `)
+            .eq('id', messageId)
+            .single();
+
+        if (error) throw error;
+        res.status(200).json(msg);
+    } catch (err) {
+        console.error("Error getMessageById:", err);
+        res.status(500).json({ error: 'Error al cargar mensaje' });
+    }
+};
+
+export const toggleReaction = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { messageId, emoji } = req.body;
+
+        if (!messageId || !emoji) return res.status(400).json({ error: 'Faltan datos' });
+
+        const { data: existing } = await supabase
+            .from('message_reactions')
+            .select('*')
+            .eq('message_id', messageId)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (existing && existing.emoji === emoji) {
+            await supabase
+                .from('message_reactions')
+                .delete()
+                .eq('id', existing.id);
+            return res.status(200).json({ action: 'deleted', id: existing.id });
+        } else if (existing) {
+            const { data: updated } = await supabase
+                .from('message_reactions')
+                .update({ emoji })
+                .eq('id', existing.id)
+                .select()
+                .single();
+            return res.status(200).json({ action: 'updated', data: updated });
+        } else {
+            const { data: created } = await supabase
+                .from('message_reactions')
+                .insert({
+                    message_id: messageId,
+                    user_id: userId,
+                    emoji
+                })
+                .select()
+                .single();
+            return res.status(201).json({ action: 'created', data: created });
+        }
+    } catch (err) {
+        console.error("Error toggleReaction:", err);
+        res.status(500).json({ error: 'Error al procesar reacción' });
     }
 };
