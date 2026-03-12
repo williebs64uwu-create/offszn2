@@ -21,6 +21,7 @@ import { useAuth } from '../store/authStore';
 // Pages - Public
 import Profile from '../pages/public/Profile';
 import Bio from '../pages/public/Bio';
+import Producers from '../pages/public/Producers';
 import CommunityPage from '../pages/public/CommunityPage';
 
 // Pages - Auth
@@ -92,7 +93,7 @@ const AppRouter = () => {
           <Route path="/rnb" element={<Explore />} />
 
           {/* Community Routes */}
-          <Route path="/productores" element={<CommunityPage />} />
+          <Route path="/productores" element={<Producers />} />
           <Route path="/collabs" element={<CommunityPage />} />
           <Route path="/feed" element={<CommunityPage />} />
           <Route path="/eventos" element={<CommunityPage />} />

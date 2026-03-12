@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { getAllProducts, getProductById, incrementPlayCount } from '../controllers/ProductController.js';
 import { getUserByNickname, getUserProfile, checkNickname, completeProfile } from '../controllers/UserController.js';
 import { getLeaderboard } from '../controllers/LeaderboardController.js';
-import { optionalAuthMiddleware } from '../middlewares/auth.middleware.js';
+import { getAllProducers } from '../controllers/ProducerController.js';
+import { createCustomRequest } from '../controllers/CustomRequestController.js';
+import { optionalAuthMiddleware, authMiddleware } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -20,5 +22,11 @@ router.post('/users/check-nickname', checkNickname);
 
 // Search & Discovery
 router.get('/leaderboard', getLeaderboard);
+
+// Creators (Producers)
+router.get('/producers', getAllProducers);
+
+// Custom Requests
+router.post('/custom-requests', authMiddleware, createCustomRequest);
 
 export default router;

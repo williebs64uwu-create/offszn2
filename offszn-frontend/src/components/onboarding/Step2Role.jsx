@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { Music, Mic, Headphones, Disc, Radio, Briefcase } from 'lucide-react';
+import { Music, Mic, PenTool, Sliders, PlayCircle, Briefcase, User } from 'lucide-react';
 
 const Step2Role = ({ onNext, onBack, initialData }) => {
     const [selectedRole, setSelectedRole] = useState(initialData.role || '');
 
     const roles = [
-        { value: 'producer', label: 'Productor', icon: Music },
-        { value: 'engineer', label: 'Ingeniero de Sonido', icon: Headphones },
-        { value: 'musician', label: 'Músico', icon: Mic },
-        { value: 'beatmaker', label: 'Beatmaker', icon: Disc },
-        { value: 'dj', label: 'DJ', icon: Radio },
-        { value: 'other', label: 'Otro', icon: Briefcase }
+        { value: 'Productor Musical', label: 'Productor Musical', icon: Music },
+        { value: 'Artista / Cantante', label: 'Artista / Cantante', icon: Mic },
+        { value: 'Compositor / Songwriter', label: 'Compositor / Songwriter', icon: PenTool },
+        { value: 'Ingeniero de Mezcla/Master', label: 'Ingeniero de Mezcla/Master', icon: Sliders },
+        { value: 'Músico / Instrumentista', label: 'Músico / Instrumentista', icon: PlayCircle },
+        { value: 'Otro Rol Musical', label: 'Otro Rol Musical', icon: Briefcase },
+        { value: 'Fan / Consumidor', label: 'Fan / Consumidor', icon: User }
     ];
 
     const handleSubmit = (e) => {
@@ -40,8 +41,8 @@ const Step2Role = ({ onNext, onBack, initialData }) => {
                             type="button"
                             onClick={() => setSelectedRole(role.value)}
                             className={`p-6 rounded-xl border-2 transition-all ${isSelected
-                                    ? 'bg-white border-white text-black'
-                                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600'
+                                ? 'bg-white border-white text-black'
+                                : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600'
                                 }`}
                         >
                             <Icon className={`w-8 h-8 mx-auto mb-3 ${isSelected ? 'text-black' : 'text-zinc-500'}`} />
