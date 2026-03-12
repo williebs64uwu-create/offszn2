@@ -4,14 +4,14 @@ import { Disc, Sliders, Music, Target, CheckCircle, ArrowRight } from 'lucide-re
 
 const Home = () => {
   return (
-    <div className="w-full">
+    <div className="w-full relative">
 
       {/* ================= HERO SECTION ================= */}
-      <section className="relative min-h-[75vh] flex items-center justify-center px-6 py-20 overflow-hidden bg-black">
+      <section className="relative min-h-[85vh] flex items-center justify-center px-6 py-20 overflow-hidden">
 
-        {/* Legacy Background */}
-        <div className="absolute inset-0 bg-[url('/hero-bg.png')] bg-center bg-cover bg-no-repeat opacity-50 z-0"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_80%)] z-10"></div>
+        {/* Animated Background Overlay */}
+        <div className="absolute inset-0 bg-radial-gradient(circle_at_center,rgba(114,9,183,0.15)_0%,transparent_70%)] z-10"></div>
+        <div className="absolute inset-0 bg-black/40 z-0"></div>
 
         {/* Contenido Hero */}
         <div className="relative z-20 max-w-4xl text-center flex flex-col items-center">
@@ -88,7 +88,7 @@ const Home = () => {
       </section>
 
       {/* ================= STUDIO TOOLS SECTION ================= */}
-      <section className="py-24 bg-[#080808]">
+      <section className="py-24 bg-black/40 backdrop-blur-sm border-y border-white/5">
         <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
 
           {/* Texto */}
@@ -128,7 +128,7 @@ const Home = () => {
       </section>
 
       {/* ================= CTA BANNER ================= */}
-      <section className="py-24 px-6 text-center bg-black">
+      <section className="py-24 px-6 text-center">
         <div className="max-w-4xl mx-auto bg-gradient-to-b from-[#1c1c1c] to-black border border-white/10 rounded-3xl p-12 md:p-20 relative overflow-hidden">
           {/* Glow effect */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-primary/5 blur-[100px] pointer-events-none"></div>

@@ -3,7 +3,7 @@ import { getAllProducts, getProductById, incrementPlayCount } from '../controlle
 import { getUserByNickname, getUserProfile, checkNickname, completeProfile } from '../controllers/UserController.js';
 import { getLeaderboard } from '../controllers/LeaderboardController.js';
 import { getAllProducers } from '../controllers/ProducerController.js';
-import { createCustomRequest } from '../controllers/CustomRequestController.js';
+import { createCustomRequest, getPublicRequests, claimRequest } from '../controllers/CustomRequestController.js';
 import { optionalAuthMiddleware, authMiddleware } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -27,6 +27,8 @@ router.get('/leaderboard', getLeaderboard);
 router.get('/producers', getAllProducers);
 
 // Custom Requests
+router.get('/custom-requests/public', getPublicRequests);
 router.post('/custom-requests', authMiddleware, createCustomRequest);
+router.post('/custom-requests/:id/claim', authMiddleware, claimRequest);
 
 export default router;

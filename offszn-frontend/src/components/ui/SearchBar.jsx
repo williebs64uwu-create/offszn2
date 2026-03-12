@@ -50,18 +50,31 @@ const SearchBar = () => {
   };
 
   const handleKeyDown = (e) => {
-    const itemsCount = query.length === 0 ? history.length + 3 : results.length;
+    const itemsCount = query.length === 0 ? Math.min(history.length, 5) + 3 : results.length;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex(prev => (prev + 1) % itemsCount);
+      setSelectedIndex(prev => (prev + 1) % (itemsCount || 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex(prev => (prev - 1 + itemsCount) % itemsCount);
+      setSelectedIndex(prev => (prev - 1 + (itemsCount || 1)) % (itemsCount || 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (selectedIndex >= 0) {
-        // Handle selection logic here
+        // Find which item is selected
+        if (query.length === 0) {
+          const historyItems = history.slice(0, 5);
+          if (selectedIndex < historyItems.length) {
+            submitSearch(historyItems[selectedIndex]);
+          } else {
+            // Trends (hardcoded in UI for now)
+            const trends = ['Dark Trap', 'Reggaeton 2025', 'Drill UK'];
+            const trendIdx = selectedIndex - historyItems.length;
+            if (trends[trendIdx]) submitSearch(trends[trendIdx]);
+          }
+        } else if (results[selectedIndex]) {
+          handleItemClick(results[selectedIndex]);
+        }
       } else {
         submitSearch(query);
       }
@@ -73,9 +86,34 @@ const SearchBar = () => {
 
   const submitSearch = (term) => {
     if (!term.trim()) return;
+
+    // Legacy logic: Check for NEAR EXACT matches in current results for auto-redirect
+    if (results.length > 0) {
+      const topResult = results[0];
+      // If it's a very similar match (similarity handled in store) and not a fallback
+      const isVerySimilar = topResult.title.toLowerCase().includes(term.toLowerCase()) ||
+        term.toLowerCase().includes(topResult.title.toLowerCase());
+
+      if (isVerySimilar && !topResult.isFallback) {
+        handleItemClick(topResult);
+        return;
+      }
+    }
+
     addToHistory(term.trim());
     setIsFocused(false);
     navigate(`/explorar?q=${encodeURIComponent(term)}&type=${encodeURIComponent(category)}`);
+  };
+
+  const handleItemClick = (item) => {
+    addToHistory(query || item.title);
+    setIsFocused(false);
+    if (item.type === 'user') {
+      navigate(`/@${item.nickname}`);
+    } else {
+      const productUrl = `/${item.product_type || 'beat'}/${item.public_slug || item.id}`;
+      navigate(productUrl);
+    }
   };
 
   return (
@@ -93,7 +131,7 @@ const SearchBar = () => {
           ref={inputRef}
           type="text"
           placeholder="Buscar 'trap' o 'drill'..."
-          className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-500"
+          className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-500 font-medium"
           value={query}
           onChange={handleInputChange}
           onFocus={() => setIsFocused(true)}
@@ -104,8 +142,10 @@ const SearchBar = () => {
         {/* FILTER TRIGGER */}
         <div
           className={clsx(
-            "flex items-center gap-1 cursor-pointer text-xs font-medium px-2 py-1 rounded transition-colors",
-            category !== 'Todo' ? "bg-white/10 text-white border border-white/20" : "text-gray-400 hover:text-white"
+            "flex items-center gap-1 cursor-pointer text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-full transition-all",
+            category !== 'Todo'
+              ? "bg-white text-black"
+              : "text-zinc-500 hover:text-white border border-white/5 bg-white/5"
           )}
           onClick={(e) => { e.stopPropagation(); setShowFilterMenu(!showFilterMenu); }}
         >
@@ -116,17 +156,19 @@ const SearchBar = () => {
 
       {/* FILTER DROPDOWN */}
       {showFilterMenu && (
-        <div className="absolute top-full right-0 mt-2 w-40 bg-[#080808] border border-white/10 rounded-xl p-2 shadow-2xl z-1003 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute top-full right-0 mt-2 w-48 bg-[#0a0a0a] border border-white/10 rounded-2xl p-2 shadow-2xl z-1003 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="px-3 py-2 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1">Filtrar por</div>
           {SEARCH_FILTERS.map(filter => (
             <div
               key={filter}
               className={clsx(
-                "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors flex items-center gap-2",
-                category === filter ? "bg-primary/10 text-primary font-bold" : "text-gray-400 hover:bg-white/5 hover:text-white"
+                "px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-between",
+                category === filter ? "bg-white text-black" : "text-zinc-400 hover:bg-white/5 hover:text-white"
               )}
               onClick={() => { setCategory(filter); setShowFilterMenu(false); if (query) performSearch(query, filter); }}
             >
               {filter}
+              {category === filter && <div className="w-1.5 h-1.5 bg-black rounded-full" />}
             </div>
           ))}
         </div>
@@ -134,23 +176,30 @@ const SearchBar = () => {
 
       {/* RESULTS / HISTORY PANEL */}
       {isFocused && (
-        <div className="absolute top-full left-0 w-full mt-3 bg-[#080808] border border-white/15 rounded-xl shadow-[0_10px_50px_rgba(0,0,0,1)] p-4 z-1002">
+        <div className="absolute top-full left-0 w-full mt-3 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] p-5 z-1002 animate-in fade-in slide-in-from-top-4 duration-300">
 
           {query.length === 0 ? (
             <>
               {history.length > 0 && (
-                <div className="mb-5">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[0.7rem] font-bold text-gray-500 uppercase tracking-wider font-['Plus_Jakarta_Sans']">Búsquedas Recientes</span>
-                    <span className="text-xs text-primary cursor-pointer hover:underline" onClick={() => navigate('/history')}>Ver todo</span>
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Recientes</span>
+                    <button className="text-[10px] font-black text-white hover:opacity-70 transition-opacity uppercase tracking-widest" onClick={() => navigate('/history')}>Limpiar</button>
                   </div>
                   <div className="flex flex-col gap-1">
-                    {history.slice(0, 5).map(term => (
-                      <div key={term} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer text-gray-400 hover:text-white group transition-colors" onClick={() => submitSearch(term)}>
-                        <Clock className="w-3 h-3 opacity-50" />
-                        <span className="flex-1 text-sm">{term}</span>
+                    {history.slice(0, 5).map((term, idx) => (
+                      <div
+                        key={term}
+                        className={clsx(
+                          "flex items-center gap-3 p-2.5 rounded-xl cursor-pointer group transition-all",
+                          selectedIndex === idx ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                        )}
+                        onClick={() => submitSearch(term)}
+                      >
+                        <Clock className="w-3.5 h-3.5 opacity-40 shrink-0" />
+                        <span className="flex-1 text-sm font-bold truncate">{term}</span>
                         <X
-                          className="w-4 h-4 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"
+                          className="w-4 h-4 opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:text-red-500 transition-all"
                           onClick={(e) => { e.stopPropagation(); removeHistoryItem(term); }}
                         />
                       </div>
@@ -160,49 +209,85 @@ const SearchBar = () => {
               )}
 
               <div>
-                <span className="block text-[0.7rem] font-bold text-gray-500 uppercase tracking-wider mb-3 font-['Plus_Jakarta_Sans']">Tendencias Ahora</span>
+                <span className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4">Tendencias</span>
                 <div className="flex flex-wrap gap-2">
-                  {['Dark Trap', 'Reggaeton 2025', 'Drill UK'].map(trend => (
-                    <div
-                      key={trend}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full text-xs text-gray-300 hover:bg-primary/10 hover:text-white hover:border-primary/30 border border-transparent transition-all cursor-pointer"
-                      onClick={() => submitSearch(trend)}
-                    >
-                      <TrendingUp className="w-3 h-3 text-primary" />
-                      {trend}
-                    </div>
-                  ))}
+                  {['Dark Trap', 'Reggaeton 2025', 'Drill UK'].map((trend, tidx) => {
+                    const absIdx = history.slice(0, 5).length + tidx;
+                    return (
+                      <div
+                        key={trend}
+                        className={clsx(
+                          "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer border",
+                          selectedIndex === absIdx
+                            ? "bg-white text-black border-white"
+                            : "bg-white/5 text-zinc-300 border-white/5 hover:border-white/20 hover:bg-white/10"
+                        )}
+                        onClick={() => submitSearch(trend)}
+                      >
+                        <TrendingUp className={clsx("w-3.5 h-3.5", selectedIndex === absIdx ? "text-black" : "text-white opacity-40")} />
+                        {trend}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               {loading ? (
-                <div className="text-center py-4 text-gray-500 text-sm">Buscando...</div>
+                <div className="flex items-center justify-center py-10">
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                </div>
               ) : results.length > 0 ? (
-                results.map(item => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
-                    onClick={() => {
-                      addToHistory(query);
-                      setIsFocused(false);
-                      const productUrl = `/${item.product_type || 'beat'}/${item.public_slug || item.id}`;
-                      navigate(productUrl);
-                    }}
-                  >
-                    <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded object-cover" />
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-white">{item.name}</div>
-                      <div className="text-xs text-gray-500">{item.product_type}</div>
-                    </div>
-                    <div className="text-sm font-bold text-primary">
-                      {item.price_basic ? formatPrice(item.price_basic) : 'Gratis'}
-                    </div>
-                  </div>
-                ))
+                <>
+                  {results[0].isFallback && (
+                    <div className="px-2 py-1 text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Tal vez te interese</div>
+                  )}
+                  {results.map((item, idx) => {
+                    const isUser = item.type === 'user';
+                    return (
+                      <div
+                        key={item.id}
+                        className={clsx(
+                          "flex items-center gap-3.5 p-2.5 rounded-2xl cursor-pointer transition-all border border-transparent",
+                          selectedIndex === idx
+                            ? "bg-white/10 border-white/5"
+                            : "hover:bg-white/5"
+                        )}
+                        onClick={() => handleItemClick(item)}
+                      >
+                        <div className="relative shrink-0">
+                          <img
+                            src={item.img || (isUser ? `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nickname)}&background=random` : '/placeholder.jpg')}
+                            alt={item.title}
+                            className={clsx("w-11 h-11 object-cover shadow-2xl", isUser ? "rounded-full" : "rounded-lg")}
+                          />
+                          {isUser && item.is_verified && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border-2 border-[#0a0a0a]">
+                              <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-black text-white truncate uppercase tracking-tight">{item.title}</div>
+                          <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-0.5">
+                            {isUser ? 'PRODUCTOR' : (item.producer_name || 'OFFSZN')}
+                          </div>
+                        </div>
+                        {!isUser && (
+                          <div className="text-xs font-black text-white px-3 py-1 bg-white/5 rounded-lg border border-white/5">
+                            {item.price_basic ? formatPrice(item.price_basic) : 'FREE'}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
               ) : (
-                <div className="text-center py-4 text-gray-500 text-sm">No se encontraron resultados</div>
+                <div className="text-center py-12">
+                  <Search className="w-10 h-10 text-zinc-800 mx-auto mb-3" />
+                  <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Sin resultados</div>
+                </div>
               )}
             </div>
           )}

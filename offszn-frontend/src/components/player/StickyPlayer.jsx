@@ -1,22 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { usePlayerStore } from '../../store/playerStore';
 import { useCurrencyStore } from '../../store/currencyStore';
 import { useSecureUrl } from '../../hooks/useSecureUrl';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useFavorites } from '../../hooks/useFavorites';
-import {
-  BiSkipPrevious,
-  BiPlay,
-  BiPause,
-  BiSkipNext,
-  BiVolumeFull,
-  BiVolumeMute,
-  BiCartAdd,
-  BiX,
-  BiHeart,
-  BiDownload
-} from 'react-icons/bi';
+import { apiClient } from '../../api/client';
+import ShareModal from '../modals/ShareModal';
+import ComparisonModal from '../modals/ComparisonModal';
 
 const StickyPlayer = () => {
   const {
@@ -31,205 +22,344 @@ const StickyPlayer = () => {
   } = usePlayerStore();
 
   const { formatPrice } = useCurrencyStore();
+  const navigate = useNavigate();
+
   const waveformRef = useRef(null);
   const wavesurfer = useRef(null);
+  const audioEl = useRef(null);
+
   const [currentTime, setCurrentTime] = useState('0:00');
   const [totalTime, setTotalTime] = useState('--:--');
   const [isMuted, setIsMuted] = useState(false);
-  const [prevVolume, setPrevVolume] = useState(volume);
   const { toggleFavorite } = useFavorites();
   const [isLiked, setIsLiked] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
+  // Modals state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+
+  // Sync local liked state when track changes
   useEffect(() => {
     setIsLiked(!!currentTrack?.is_liked);
-  }, [currentTrack?.id]);
+  }, [currentTrack?.id ? String(currentTrack.id) : null, currentTrack?.is_liked]);
 
   const handleLike = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    if (!currentTrack) return;
     const result = await toggleFavorite(currentTrack.id);
     if (result !== null) setIsLiked(result);
   };
 
   // Secure URLs
   const { url: secureCover } = useSecureUrl(currentTrack?.image_url);
-
-  // Resolve Audio URL
-  // Priority: demo -> mp3 -> generic audio_url
-  const rawAudioUrl = currentTrack ? (currentTrack.demo_audio_url || currentTrack.download_url_mp3 || currentTrack.audio_url) : null;
+  const rawAudioUrl = useMemo(() => {
+    if (!currentTrack) return null;
+    return (
+      currentTrack.demo_audio_url ||
+      currentTrack.mp3_url ||
+      currentTrack.demo_url ||
+      currentTrack.audio_url ||
+      currentTrack.download_url_mp3 ||
+      currentTrack.preview_url ||
+      currentTrack.demo_file ||
+      currentTrack.tagged_file ||
+      currentTrack.file_url ||
+      currentTrack.url_file
+    );
+  }, [currentTrack?.id ? String(currentTrack.id) : null]);
   const { url: secureAudio } = useSecureUrl(rawAudioUrl);
 
-  // 1. Inicializar WaveSurfer cuando cambia el track Y tenemos la URL segura
-  useEffect(() => {
-    if (!currentTrack || !waveformRef.current || !secureAudio) return;
+  const formatTime = (s) => {
+    if (isNaN(s) || s === Infinity) return '0:00';
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
-    if (wavesurfer.current) {
-      wavesurfer.current.destroy();
+  // Initialize WaveSurfer
+  useEffect(() => {
+    if (!waveformRef.current) {
+      console.log("[StickyPlayer] WaveformRef not ready");
+      return;
     }
 
-    wavesurfer.current = WaveSurfer.create({
-      container: waveformRef.current,
-      waveColor: '#444',
-      progressColor: '#8b5cf6',
-      cursorColor: 'transparent',
-      barWidth: 2,
-      barGap: 3,
-      barRadius: 2,
-      height: 30,
-      normalize: true,
-      backend: 'MediaElement',
-    });
+    if (!wavesurfer.current) {
+      console.log("[StickyPlayer] Initializing WaveSurfer...");
 
-    wavesurfer.current.load(secureAudio);
-    wavesurfer.current.setVolume(volume);
+      // Create hidden audio element
+      const el = document.createElement('audio');
+      el.crossOrigin = "anonymous";
+      el.preload = "auto";
+      el.style.display = "none";
+      document.body.appendChild(el);
+      audioEl.current = el;
 
-    wavesurfer.current.on('ready', () => {
-      // Check validation: Duration might be Infinity/NaN if streaming? Usually fine with MediaElement
-      const duration = wavesurfer.current.getDuration();
-      if (isFinite(duration)) setTotalTime(formatTime(duration));
+      wavesurfer.current = WaveSurfer.create({
+        container: waveformRef.current,
+        media: el,
+        waveColor: '#333',
+        progressColor: '#fff',
+        cursorColor: '#fff',
+        cursorWidth: 2,
+        barWidth: 2,
+        barGap: 2,
+        barRadius: 2,
+        height: 40,
+        normalize: true,
+        interact: true,
+      });
 
-      if (isPlaying) {
-        const playPromise = wavesurfer.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => console.error("Auto-play prevented:", error));
+      wavesurfer.current.on('ready', () => {
+        const duration = wavesurfer.current.getDuration();
+        console.log("[StickyPlayer] WaveSurfer Ready. Duration:", duration);
+        setTotalTime(formatTime(duration));
+        setIsReady(true);
+      });
+
+      wavesurfer.current.on('error', (err) => {
+        console.error("[StickyPlayer] WaveSurfer Error:", err);
+      });
+
+      wavesurfer.current.on('timeupdate', () => {
+        setCurrentTime(formatTime(wavesurfer.current.getCurrentTime()));
+      });
+
+      wavesurfer.current.on('finish', () => {
+        console.log("[StickyPlayer] Track finished");
+        playNext();
+      });
+
+      const handleResize = () => {
+        // WaveSurfer 7 handles most resizing automatically,
+        // but we can trigger a redraw if layout shift occurs.
+        // wavesurfer.current?.redraw(); // Optional in v7
+      };
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        console.log("[StickyPlayer] Destroying WaveSurfer");
+        window.removeEventListener('resize', handleResize);
+        if (wavesurfer.current) {
+          wavesurfer.current.destroy();
+          wavesurfer.current = null;
         }
-      }
-    });
+        if (audioEl.current && audioEl.current.parentNode) {
+          audioEl.current.parentNode.removeChild(audioEl.current);
+        }
+      };
+    }
+  }, [waveformRef.current]); // Using .current here is risky but often works with state-triggering re-renders
 
-    wavesurfer.current.on('audioprocess', () => {
-      setCurrentTime(formatTime(wavesurfer.current.getCurrentTime()));
-    });
-
-    wavesurfer.current.on('finish', () => {
-      playNext();
-    });
-
-    return () => {
-      if (wavesurfer.current) wavesurfer.current.destroy();
-    };
-  }, [currentTrack?.id, secureAudio]); // Re-run if track ID changes OR secure URL resolves
-
-  // 2. Controlar Play/Pause
+  // Track loading
   useEffect(() => {
-    if (!wavesurfer.current) return;
-    try {
-      isPlaying ? wavesurfer.current.play() : wavesurfer.current.pause();
-    } catch (err) { console.warn(err); }
-  }, [isPlaying]);
+    if (wavesurfer.current && secureAudio) {
+      console.log("[StickyPlayer] Loading new track:", secureAudio);
 
-  // 3. Controlar Volumen
+      // IMPORTANT: Stop and reset current audio immediately
+      // to prevent the "3-second overlap" during loading.
+      setIsReady(false);
+      wavesurfer.current.pause();
+      if (audioEl.current) {
+        audioEl.current.src = "";
+        audioEl.current.load(); // Reset media state
+      }
+
+      wavesurfer.current.load(secureAudio);
+    } else if (wavesurfer.current && !secureAudio) {
+      console.log("[StickyPlayer] SecureAudio is null, sitting idle");
+      setIsReady(false);
+    }
+  }, [secureAudio]);
+
+  // Volume & Play
   useEffect(() => {
     if (wavesurfer.current) {
       wavesurfer.current.setVolume(isMuted ? 0 : volume);
     }
   }, [volume, isMuted]);
 
-  const formatTime = (seconds) => {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  useEffect(() => {
+    const ws = wavesurfer.current;
+    if (ws && isReady) {
+      if (isPlaying) {
+        console.log("[StickyPlayer] Playing...");
+        const playPromise = ws.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.warn("[StickyPlayer] Playback prevented:", error);
+          });
+        }
+      } else {
+        console.log("[StickyPlayer] Pausing...");
+        ws.pause();
+      }
+    }
+  }, [isPlaying, isReady, currentTrack?.id ? String(currentTrack.id) : null]);
+
+  // Volume drag
+  const handleVolumeMove = useCallback((e) => {
+    const track = document.getElementById('sp-vol-track');
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    const offsetY = rect.bottom - e.clientY;
+    let percent = offsetY / rect.height;
+    setVolume(Math.max(0, Math.min(1, percent)));
+  }, [setVolume]);
+
+  const startVolumeDrag = (e) => {
+    handleVolumeMove(e);
+    const onMouseMove = (m) => handleVolumeMove(m);
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   };
 
-  const handleVolumeToggle = () => {
-    if (isMuted) {
-      setIsMuted(false);
-      setVolume(prevVolume);
-    } else {
-      setPrevVolume(volume);
-      setIsMuted(true);
-      setVolume(0);
-    }
-  };
+  // Stats
+  useEffect(() => {
+    if (!isPlaying || !currentTrack) return;
+    const timer = setTimeout(() => {
+      apiClient.post(`/products/${currentTrack.id}/play`).catch(() => { });
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [currentTrack?.id, isPlaying]);
 
   if (!currentTrack) return null;
 
-  return (
-    <div className="fixed bottom-0 left-0 w-full h-[75px] md:h-[90px] bg-[#0A0A0A] border-t border-white/5 flex items-center justify-between px-4 md:px-8 z-[9999] backdrop-blur-xl shadow-2xl">
+  const navigateToProduct = () => {
+    navigate(`/${currentTrack.product_type || 'beat'}/${currentTrack.public_slug || currentTrack.id}`);
+  };
 
-      {/* LEFT: INFO */}
-      <div className="flex items-center gap-3 md:gap-4 flex-1 md:flex-none md:w-[25%] min-w-0 md:min-w-[180px]">
-        <Link to={`/${currentTrack.product_type || 'beat'}/${currentTrack.public_slug || currentTrack.id}`} className="relative w-11 h-11 md:w-14 md:h-14 rounded-lg overflow-hidden shrink-0 group">
-          <img
-            src={secureCover || '/placeholder.jpg'}
-            alt="Cover"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <i className="bi bi-arrows-fullscreen text-white text-[10px]"></i>
+  const isOwnRequest = currentTrack.is_custom_request && currentTrack.buyer_id === localStorage.getItem('userId');
+
+  return (
+    <div className="fixed bottom-0 left-0 w-full z-[9990] bg-[#0a0a0a] border-t border-white/5 h-[90px] md:h-[100px] flex items-center justify-between px-4 md:px-10 transition-transform duration-300 translate-y-0 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+
+      {/* SP-LEFT */}
+      <div className="flex items-center gap-4 flex-1 min-w-0 md:max-w-[30%]">
+        <img
+          src={secureCover || '/placeholder.jpg'}
+          alt="Cover"
+          className="w-12 h-12 md:w-16 md:h-16 rounded shadow-lg object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+          onClick={navigateToProduct}
+        />
+        <div className="flex flex-col min-w-0">
+          <div
+            onClick={navigateToProduct}
+            className="text-[#eee] font-bold text-sm md:text-base leading-tight truncate cursor-pointer hover:text-white transition-colors uppercase tracking-tight"
+          >
+            {currentTrack.name?.replace(/_/g, ' ').replace(/\.(mp3|wav|zip|rar)$/i, '') || 'Untitled'}
           </div>
-        </Link>
-        <div className="flex flex-col overflow-hidden pr-2">
-          <Link to={`/${currentTrack.product_type || 'beat'}/${currentTrack.public_slug || currentTrack.id}`} className="text-white text-[13px] md:text-sm font-bold truncate hover:text-violet-400 transition-colors">
-            {currentTrack.name}
-          </Link>
-          <Link to={`/@${currentTrack.users?.nickname || currentTrack.producer_nickname}`} className="text-[10px] md:text-[11px] text-zinc-500 truncate hover:text-zinc-300">
-            {currentTrack.users?.nickname || currentTrack.producer_nickname || 'Productor'}
-          </Link>
+          <div className="text-zinc-500 text-[10px] md:text-xs font-black uppercase tracking-[0.1em] truncate mt-0.5">
+            <Link to={`/@${currentTrack.users?.nickname || currentTrack.producer_nickname}`} className="hover:text-zinc-300 transition-colors">
+              {currentTrack.users?.nickname || currentTrack.producer_nickname || 'Productor'}
+            </Link>
+          </div>
+        </div>
+        <div className="hidden lg:flex items-center gap-3 ml-4">
+          <button onClick={handleLike} className={`text-lg transition-colors ${isLiked ? 'text-red-500' : 'text-zinc-500 hover:text-white'}`}>
+            <i className={`bi ${isLiked ? 'bi-heart-fill' : 'bi-heart'}`}></i>
+          </button>
+          <button onClick={() => setIsShareModalOpen(true)} className="text-lg text-zinc-500 hover:text-white transition-colors">
+            <i className="bi bi-share"></i>
+          </button>
+          <button onClick={navigateToProduct} className="text-lg text-zinc-500 hover:text-white transition-colors">
+            <i className="bi bi-download"></i>
+          </button>
         </div>
       </div>
 
-      {/* CENTER: CONTROLS & WAVEFORM */}
-      <div className="flex flex-col items-center justify-center px-2 md:px-4 md:flex-1 md:max-w-[600px]">
-        <div className="flex items-center gap-4 md:gap-6">
-          <button onClick={playPrev} className="hidden md:block text-zinc-400 hover:text-white text-2xl transition-all hover:scale-110">
-            <BiSkipPrevious />
+      {/* SP-CENTER */}
+      <div className="flex flex-col items-center flex-[2] max-w-[45%] gap-2">
+        <div className="flex items-center w-full gap-3 text-[10px] font-black text-zinc-500 tracking-[0.1em]">
+          <span className="w-8 text-right">{currentTime}</span>
+          <div ref={waveformRef} className="flex-1 h-10 relative" id="sp-waveform-wrapper" />
+          <span className="w-8 text-left">{totalTime}</span>
+        </div>
+        <div className="flex items-center gap-8 md:gap-12">
+          <button onClick={playPrev} className="text-zinc-500 hover:text-white text-xl md:text-2xl transition-all">
+            <i className="bi bi-skip-start-fill"></i>
           </button>
-
           <button
             onClick={togglePlay}
-            className="w-10 h-10 md:w-12 md:h-12 bg-white text-black rounded-full flex items-center justify-center text-xl md:text-2xl hover:scale-105 transition-all shadow-lg active:scale-95"
+            className="w-10 h-10 md:w-12 md:h-12 bg-white text-black rounded-full flex items-center justify-center text-xl md:text-2xl hover:scale-105 active:scale-95 transition-all shadow-lg"
           >
-            {isPlaying ? <BiPause /> : <BiPlay className="ml-1" />}
+            <i className={`bi ${isPlaying ? 'bi-pause-fill' : 'bi-play-fill'} ${!isPlaying ? 'ml-0.5' : ''}`}></i>
           </button>
-
-          <button onClick={playNext} className="hidden md:block text-zinc-400 hover:text-white text-2xl transition-all hover:scale-110">
-            <BiSkipNext />
+          <button onClick={playNext} className="text-zinc-500 hover:text-white text-xl md:text-2xl transition-all">
+            <i className="bi bi-skip-end-fill"></i>
           </button>
-        </div>
-
-        <div className="hidden md:flex items-center w-full gap-3 text-[10px] font-bold text-zinc-600 mt-2">
-          <span className="w-8 text-right tabular-nums">{currentTime}</span>
-          <div ref={waveformRef} className="flex-1 min-w-[200px]" />
-          <span className="w-8 text-left tabular-nums">{totalTime}</span>
         </div>
       </div>
 
-      {/* RIGHT: ACTIONS & VOLUME */}
-      <div className="flex items-center justify-end gap-3 md:gap-6 md:w-[25%] md:min-w-[200px] shrink-0">
-        <div className="hidden lg:flex items-center gap-3">
-          <button onClick={handleVolumeToggle} className="text-zinc-400 hover:text-white text-xl transition-colors">
-            {isMuted || volume === 0 ? <BiVolumeMute /> : <BiVolumeFull />}
+      {/* SP-RIGHT */}
+      <div className="flex items-center justify-end gap-3 md:gap-5 flex-1 md:max-w-[25%] relative">
+        <div className="hidden lg:block relative group/volume">
+          <button onClick={() => setIsMuted(!isMuted)} className="text-zinc-500 hover:text-white text-2xl transition-colors">
+            <i className={`bi ${isMuted || volume === 0 ? 'bi-volume-mute-fill' : (volume < 0.5 ? 'bi-volume-down-fill' : 'bi-volume-up-fill')}`}></i>
           </button>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={volume}
-            onChange={(e) => {
-              setVolume(parseFloat(e.target.value));
-              if (parseFloat(e.target.value) > 0) setIsMuted(false);
-            }}
-            className="w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
-          />
+
+          <div className="absolute bottom-[35px] left-1/2 -translate-x-1/2 w-8 h-32 bg-[#111] border border-white/5 rounded-lg p-2 opacity-0 group-hover/volume:opacity-100 transition-all pointer-events-none group-hover/volume:pointer-events-auto shadow-2xl flex flex-col items-center">
+            <div
+              id="sp-vol-track"
+              className="w-1 h-full bg-[#333] rounded-full relative cursor-pointer"
+              onMouseDown={startVolumeDrag}
+            >
+              <div
+                className="absolute bottom-0 left-0 w-full bg-white rounded-full"
+                style={{ height: `${volume * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
+
+        {currentTrack.is_custom_request && (
+          <button
+            onClick={() => navigate('/feed')}
+            className="hidden xl:flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-colors border border-white/5"
+          >
+            <i className="bi bi-eye"></i> <span>DETALLES</span>
+          </button>
+        )}
 
         <button
-          onClick={handleLike}
-          className={`hidden sm:flex text-xl transition-all hover:scale-110 ${isLiked ? 'text-red-500' : 'text-zinc-400 hover:text-white'}`}
+          onClick={() => currentTrack.is_custom_request ? navigate('/feed') : setIsLicenseModalOpen(true)}
+          disabled={isOwnRequest}
+          className="flex items-center gap-2 bg-white hover:bg-zinc-200 text-black px-4 md:px-7 py-2.5 rounded-full font-black text-[10px] md:text-xs uppercase tracking-[0.15em] transition-all disabled:opacity-50 shadow-md"
         >
-          <BiHeart fill={isLiked ? "currentColor" : "none"} />
+          <i className={`bi ${currentTrack.is_custom_request ? 'bi-briefcase' : 'bi-cart-plus'}`}></i>
+          <span>
+            {currentTrack.is_custom_request
+              ? (isOwnRequest ? 'TU SOLICITUD' : 'TOMAR TRABAJO')
+              : (currentTrack.is_free ? 'FREE' : formatPrice(currentTrack.price_basic))}
+          </span>
         </button>
 
-        <button className="bg-violet-600 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-[10px] md:text-xs font-black flex items-center gap-1.5 md:gap-2 hover:bg-violet-500 transition-all shadow-lg hover:-translate-y-0.5 active:translate-y-0">
-          <BiCartAdd size={16} />
-          <span className="hidden sm:inline">{currentTrack.is_free ? 'GRATIS' : formatPrice(currentTrack.price_basic)}</span>
-        </button>
-
-        <button onClick={closePlayer} className="text-zinc-600 hover:text-white transition-colors">
-          <BiX size={20} md:size={24} />
+        <button onClick={closePlayer} className="text-zinc-500 hover:text-white transition-colors ml-1">
+          <i className="bi bi-x-lg text-lg md:text-xl"></i>
         </button>
       </div>
+
+      {/* Progress Bar top of player on mobile */}
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-white/5 md:hidden">
+        <div
+          className="h-full bg-white transition-all duration-200"
+          style={{ width: `${(wavesurfer.current?.getCurrentTime() / wavesurfer.current?.getDuration()) * 100 || 0}%` }}
+        />
+      </div>
+
+      {/* Modals */}
+      <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} product={currentTrack} />
+      <ComparisonModal
+        isOpen={isLicenseModalOpen}
+        onClose={() => setIsLicenseModalOpen(false)}
+        licenses={currentTrack.licenses || []}
+        onSelect={(licenseId) => navigate(`/checkout?productId=${currentTrack.id}&licenseId=${licenseId}`)}
+      />
     </div>
   );
 };

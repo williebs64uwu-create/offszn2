@@ -22,6 +22,7 @@ import { useAuth } from '../store/authStore';
 import Profile from '../pages/public/Profile';
 import Bio from '../pages/public/Bio';
 import Producers from '../pages/public/Producers';
+import Feed from '../pages/public/Feed';
 import CommunityPage from '../pages/public/CommunityPage';
 
 // Pages - Auth
@@ -95,7 +96,7 @@ const AppRouter = () => {
           {/* Community Routes */}
           <Route path="/productores" element={<Producers />} />
           <Route path="/collabs" element={<CommunityPage />} />
-          <Route path="/feed" element={<CommunityPage />} />
+          <Route path="/feed" element={<Feed />} />
           <Route path="/eventos" element={<CommunityPage />} />
 
           {/* Rutas de Usuario Público */}

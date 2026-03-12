@@ -10,7 +10,15 @@ const urlCache = new Map();
  * @returns {Object} { url, loading, error }
  */
 export const useSecureUrl = (originalUrl) => {
-    const [url, setUrl] = useState(originalUrl);
+    // Initial check to avoid one-frame delay for cached URLs
+    const [url, setUrl] = useState(() => {
+        if (!originalUrl) return null;
+        if (urlCache.has(originalUrl)) return urlCache.get(originalUrl);
+        // If it looks like an R2 key (relative), return null so we don't try to load it as a bunk URL
+        const isR2Key = !originalUrl.startsWith('http') && !originalUrl.startsWith('data:') && !originalUrl.startsWith('/');
+        if (isR2Key) return null;
+        return originalUrl;
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 

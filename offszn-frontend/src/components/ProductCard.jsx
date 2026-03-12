@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
+import { usePlayerStore } from '../store/playerStore';
 import SecureImage from './ui/SecureImage';
+import { useCurrencyStore } from '../store/currencyStore';
 import toast from 'react-hot-toast';
 
-const ProductCard = ({ product, isPlaying, onPlay, formatPrice }) => {
+const ProductCard = ({ product }) => {
     const { addItem } = useCartStore();
+    const { formatPrice } = useCurrencyStore();
+    const { currentTrack, isPlaying: globalPlaying, playTrack, togglePlay } = usePlayerStore();
+
+    const isPlaying = globalPlaying && currentTrack?.id === product.id;
     const productUrl = `/${product.product_type || 'beat'}/${product.public_slug || product.id}`;
 
     const handleAddToCart = (e) => {
@@ -25,7 +31,15 @@ const ProductCard = ({ product, isPlaying, onPlay, formatPrice }) => {
 
                 <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                     <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPlay(); }}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (isPlaying) {
+                                togglePlay();
+                            } else {
+                                playTrack(product);
+                            }
+                        }}
                         className="w-14 h-14 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
                     >
                         {isPlaying ? (
