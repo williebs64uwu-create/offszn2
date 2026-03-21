@@ -14,8 +14,12 @@ import {
   BiRocket,
   BiDollar,
   BiMenu,
-  BiX
+  BiX,
+  BiBell,
+  BiSliderAlt,
+  BiTransferAlt
 } from 'react-icons/bi';
+import { BsPeopleFill } from "react-icons/bs";
 import logo from '../assets/images/LOGO-OFFSZN.png';
 import { useAuthStore } from '../store/authStore';
 
@@ -130,7 +134,14 @@ function Sidebar({ isOpen, onClose }) {
       <SidebarItem to="#" icon={<BiBook />} label="Cursos (Próximamente)" active={false} disabled />
       <SidebarItem to="/dashboard/analytics" icon={<BiBarChartAlt2 />} label="Estadísticas" active={isActive('/dashboard/analytics')} onClick={onClose} />
 
-      {/* --- GRUPO 4: SOCIAL --- */}
+      {/* --- GRUPO 4: CUENTA --- */}
+      <Divider />
+      <SidebarItem to="/dashboard/notifications" icon={<BiBell />} label="Notificaciones" active={isActive('/dashboard/notifications')} onClick={onClose} />
+      <SidebarItem to="/dashboard/following" icon={<BsPeopleFill />} label="Siguiendo" active={isActive('/dashboard/following')} onClick={onClose} />
+      <SidebarItem to="/dashboard/preferences" icon={<BiSliderAlt />} label="Preferencias" active={isActive('/dashboard/preferences')} onClick={onClose} />
+      <SidebarItem to="/dashboard/transactions" icon={<BiTransferAlt />} label="Transacciones" active={isActive('/dashboard/transactions')} onClick={onClose} />
+
+      {/* --- GRUPO 5: SOCIAL --- */}
       <Divider />
       <SidebarItem to="#" icon={<BiMoviePlay />} label="Reels (Próximamente)" active={false} disabled />
 

@@ -12,6 +12,11 @@ const authStoreDefinition = (set) => ({
   profile: null,
   loading: true,
 
+  // Global Guest Modal State
+  isGuestModalOpen: false,
+  openGuestModal: () => set({ isGuestModalOpen: true }),
+  closeGuestModal: () => set({ isGuestModalOpen: false }),
+
   // Verificar sesión al cargar la app
   checkSession: async () => {
     set({ loading: true });

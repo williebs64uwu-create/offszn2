@@ -5,6 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import AuthLayout from '../layouts/AuthLayout';
 import DashboardLayout from '../layouts/DashboardLayout';
+import GuestModal from '../components/modals/GuestModal';
 
 // Pages - General
 import Home from '../pages/Home';
@@ -49,6 +50,10 @@ import SubscriptionPlans from '../pages/dashboard/producer/SubscriptionPlans';
 import Negotiations from '../pages/dashboard/producer/Negotiations';
 import History from '../pages/dashboard/History';
 import Favorites from '../pages/dashboard/Favorites';
+import Notifications from '../pages/dashboard/Notifications';
+import Following from '../pages/dashboard/Following';
+import Preferences from '../pages/dashboard/Preferences';
+import Transactions from '../pages/dashboard/Transactions';
 import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 
 const AppRouter = () => {
@@ -60,6 +65,7 @@ const AppRouter = () => {
 
   return (
     <PayPalScriptProvider options={{ "client-id": "sb", currency: "USD" }}>
+      <GuestModal />
       <Routes>
         {/* --- RUTAS PÚBLICAS (Con MainLayout) --- */}
         <Route element={<MainLayout />}>
@@ -139,6 +145,10 @@ const AppRouter = () => {
           <Route path="plans" element={<SubscriptionPlans />} />
           <Route path="favorites" element={<Favorites />} />
           <Route path="history" element={<History />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="following" element={<Following />} />
+          <Route path="preferences" element={<Preferences />} />
+          <Route path="transactions" element={<Transactions />} />
         </Route>
 
         {/* --- 404 NOT FOUND --- */}

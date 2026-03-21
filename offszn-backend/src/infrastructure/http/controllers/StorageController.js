@@ -1,10 +1,10 @@
-
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl as getPresignedUrl } from "@aws-sdk/s3-request-presigner";
-import { s3Client } from "../../storage/r2Client.js";
+import { s3Client, legacyS3Client } from "../../storage/r2Client.js";
 
 
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || "offszn-storage";
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || "offsznlatbucket";
+const R2_LEGACY_BUCKET_NAME = process.env.R2_LEGACY_BUCKET_NAME || "offszn-storage";
 
 /**
  * Maps frontend folder names to the official Cloudflare R2 structure.
@@ -81,13 +81,37 @@ export const getSignedUrl = async (req, res) => {
         // Decode URI components
         key = decodeURIComponent(key);
 
+        let finalClient = s3Client;
+        let finalBucket = R2_BUCKET_NAME;
+
+        // TACTIC: Check if it exists in the PRIMARY bucket first.
+        // If it throws a 404, we try the LEGACY bucket.
+        try {
+            await s3Client.send(new HeadObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: key
+            }));
+            console.log(`[R2] Found in primary: ${key}`);
+        } catch (err) {
+            if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+                console.log(`[R2] Not found in primary, trying legacy bucket: ${key}`);
+                finalClient = legacyS3Client;
+                finalBucket = R2_LEGACY_BUCKET_NAME;
+            } else {
+                // Other error (auth, network), fallback to primary and let it fail in browser if needed
+                console.warn(`[R2] Error checking primary bucket (falling back to legacy attempt):`, err.message);
+                finalClient = legacyS3Client;
+                finalBucket = R2_LEGACY_BUCKET_NAME;
+            }
+        }
+
         const command = new GetObjectCommand({
-            Bucket: R2_BUCKET_NAME,
+            Bucket: finalBucket,
             Key: key,
         });
 
         // Sign for 1 hour
-        const url = await getPresignedUrl(s3Client, command, { expiresIn: 3600 });
+        const url = await getPresignedUrl(finalClient, command, { expiresIn: 3600 });
 
         res.json({ downloadUrl: url });
     } catch (error) {
